@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^fmt ' $1)
-
-curl --location --fail --output fmt.tar.gz --retry 5 $URL
-echo "$SHA512SUM fmt.tar.gz" | sha512sum --check -
-
 mkdir --parents fmt/src
-tar xf fmt.tar.gz -C fmt/src --strip-components=1
+tar xf /tmp/downloads/fmt.tar.gz -C fmt/src --strip-components=1
 
 cmake \
     -S fmt/src \
@@ -36,4 +31,4 @@ cmake \
 cmake --build fmt/build
 cmake --install fmt/build
 
-rm -rf fmt fmt.tar.gz
+rm -rf fmt

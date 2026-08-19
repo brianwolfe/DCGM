@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^boost ' $1)
-
-curl --location --fail --output boost.tar.gz --retry 5 $URL
-echo "$SHA512SUM boost.tar.gz" | sha512sum --check -
-
 mkdir --parents boost/src
-tar xf boost.tar.gz -C boost/src --strip-components=1
+tar xf /tmp/downloads/boost.tar.gz -C boost/src --strip-components=1
 
 cat <<EOF > boost/src/user-config.jam
 using gcc : $ARCHITECTURE : $CC ;
@@ -49,4 +44,4 @@ CXXFLAGS="${CXXFLAGS:+$CXXFLAGS }-fPIC"
      install
 popd
 
-rm -rf boost boost.tar.gz
+rm -rf boost

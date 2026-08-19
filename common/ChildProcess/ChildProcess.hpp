@@ -42,21 +42,20 @@ public:
                         std::optional<std::vector<std::string>> const &args                    = std::nullopt,
                         std::optional<std::unordered_map<std::string, std::string>> const &env = std::nullopt,
                         std::optional<std::string> const &userName                             = std::nullopt,
-                        std::optional<int> channelFd                                           = std::nullopt)
-        = 0;
-    virtual void Run()                                                                 = 0;
-    virtual void Stop(bool force = false) noexcept                                     = 0;
-    virtual void Kill(int sigTermTimeoutSec = 10) noexcept                             = 0;
-    virtual void GetStdErrBuffer(fmt::memory_buffer &errorStrings, bool block)         = 0;
-    virtual void GetStdOutBuffer(fmt::memory_buffer &errorStrings, bool block)         = 0;
-    virtual StdLines &StdOut()                                                         = 0;
-    virtual StdLines &StdErr()                                                         = 0;
-    virtual std::optional<std::reference_wrapper<FramedChannel>> GetFdChannel()        = 0;
-    virtual std::optional<pid_t> GetPid() const                                        = 0;
-    virtual bool IsAlive() const                                                       = 0;
-    virtual std::optional<int> GetExitCode() const                                     = 0;
-    virtual std::optional<int> ReceivedSignal() const                                  = 0;
-    virtual void Wait(std::optional<std::chrono::milliseconds> timeout = std::nullopt) = 0;
+                        std::optional<int> channelFd                                           = std::nullopt) = 0;
+    virtual void Run()                                                                                         = 0;
+    virtual void Stop(bool force = false) noexcept                                                             = 0;
+    virtual void Kill(int sigTermTimeoutSec = 10) noexcept                                                     = 0;
+    virtual void GetStdErrBuffer(fmt::memory_buffer &errorStrings, bool block)                                 = 0;
+    virtual void GetStdOutBuffer(fmt::memory_buffer &errorStrings, bool block)                                 = 0;
+    virtual StdLines &StdOut()                                                                                 = 0;
+    virtual StdLines &StdErr()                                                                                 = 0;
+    virtual std::optional<std::reference_wrapper<FramedChannel>> GetFdChannel()                                = 0;
+    virtual std::optional<pid_t> GetPid() const                                                                = 0;
+    virtual bool IsAlive() const                                                                               = 0;
+    virtual std::optional<int> GetExitCode() const                                                             = 0;
+    virtual std::optional<int> ReceivedSignal() const                                                          = 0;
+    virtual void Wait(std::optional<std::chrono::milliseconds> timeout = std::nullopt)                         = 0;
 
     virtual ~ChildProcessBase() = default;
 };

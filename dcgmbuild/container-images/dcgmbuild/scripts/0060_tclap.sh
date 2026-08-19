@@ -16,19 +16,8 @@
 
 set -ex
 
-read -r _ URL COMMIT_SHA <<<$(grep '^tclap ' $1)
-mkdir --parents tclap/src
-
-pushd tclap/src
-git init
-git remote add origin "$URL"
-git fetch --depth 1 origin "$COMMIT_SHA"
-git checkout --detach FETCH_HEAD
-test "$(git rev-parse HEAD)" = "$COMMIT_SHA"
-popd
-
 cmake \
-    -S tclap/src \
+    -S /tmp/downloads/tclap \
     -B tclap/build \
     -D BUILD_EXAMPLES=OFF \
     -D BUILD_UNITTESTS=OFF \

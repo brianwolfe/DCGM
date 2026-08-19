@@ -376,7 +376,7 @@ bool DcgmWatchTable::AddWatcher(dcgm_field_entity_group_t entityGroupId,
 
     dcgm_watch_info_t &watchInfo = m_entityWatchHashTable[key];
     bool newWatch                = watchInfo.watchKey.fieldId == DCGM_FI_SYSTEM_FIELD_UNKNOWN
-                    && watchInfo.watchKey.entityGroupId == DCGM_FE_NONE;
+                                   && watchInfo.watchKey.entityGroupId == DCGM_FE_NONE;
     if (newWatch)
     {
         watchInfo.watchKey           = key;

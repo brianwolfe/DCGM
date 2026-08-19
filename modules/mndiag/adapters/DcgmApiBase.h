@@ -46,8 +46,7 @@ public:
      */
     virtual dcgmReturn_t Connect_v3(const char *connectionString,
                                     dcgmConnectV3Params_t *connectParams,
-                                    dcgmHandle_t *pDcgmHandle)
-        = 0;
+                                    dcgmHandle_t *pDcgmHandle) = 0;
 
     /**
      * @brief Disconnect from a DCGM instance

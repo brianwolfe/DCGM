@@ -339,16 +339,16 @@ nvvsPluginResult_t L1TagCuda::RunTest(void)
         // Run the init data buffer kernel
         void *paramPtrs[] = { &m_kernelParams };
         cuRes             = cuLaunchKernel(initL1DataFunc,
-                               numBlocks,  // gridDimX
-                               1,          // gridDimY
-                               1,          // gridDimZ
-                               numThreads, // blockDimX
-                               1,          // blockDimY
-                               1,          // blockDimZ
-                               0,          // sharedMemSize
-                               stream,
-                               paramPtrs,
-                               NULL);
+                                           numBlocks,  // gridDimX
+                                           1,          // gridDimY
+                                           1,          // gridDimZ
+                                           numThreads, // blockDimX
+                                           1,          // blockDimY
+                                           1,          // blockDimZ
+                                           0,          // sharedMemSize
+                                           stream,
+                                           paramPtrs,
+                                           NULL);
         if (CUDA_SUCCESS != cuRes)
         {
             retVal = LogCudaFail("Failed to launch InitL1Data kernel", "cuLaunchKernel", cuRes);

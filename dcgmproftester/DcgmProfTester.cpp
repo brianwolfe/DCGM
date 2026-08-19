@@ -1217,7 +1217,7 @@ int main(int argc, char **argv)
                 std::string const gpus = fmt::format("{}", fmt::join(maxwellPascalVoltaGpus.value(), ", "));
                 std::string const msg  = fmt::format(
                     "CUDA 13.0 drops support for everything that is < 7.5 SM Cuda Compatibility. These older SKUs need to run a 12.9-linked application. "
-                     "The following GPUs are affected: {}",
+                    "The following GPUs are affected: {}",
                     gpus);
                 std::cerr << msg << std::endl;
                 std::cerr << "Please use dcgmproftester12 instead." << std::endl;

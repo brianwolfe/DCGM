@@ -1690,8 +1690,8 @@ void DcgmMnDiagManager::InitializeSSHTunnelManagers()
             [this](auto &&...args) {
                 return m_coreProxy->ChildProcessGetDataChannelHandle(std::forward<decltype(args)>(args)...);
             },
-        .Stop                                                                     = [this](auto &&...args) { return m_coreProxy->ChildProcessStop(std::forward<decltype(args)>(args)...); },
-        .Wait                                                                     = [this](auto &&...args) { return m_coreProxy->ChildProcessWait(std::forward<decltype(args)>(args)...); },
+        .Stop = [this](auto &&...args) { return m_coreProxy->ChildProcessStop(std::forward<decltype(args)>(args)...); },
+        .Wait = [this](auto &&...args) { return m_coreProxy->ChildProcessWait(std::forward<decltype(args)>(args)...); },
         .Destroy
         = [this](auto &&...args) { return m_coreProxy->ChildProcessDestroy(std::forward<decltype(args)>(args)...); },
     };

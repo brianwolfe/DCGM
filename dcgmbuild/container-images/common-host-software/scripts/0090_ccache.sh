@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^ccache ' $1)
-
-curl --location --fail --output ccache.tar.xz --retry 5 $URL
-echo "$SHA512SUM ccache.tar.xz" | sha512sum --check -
-
 mkdir ccache
-tar xf ccache.tar.xz --strip-components=1 -C ccache
+tar xf /tmp/downloads/ccache.tar.xz --strip-components=1 -C ccache
 make -C ccache install
 
-rm -rf ccache.tar.xz ccache
+rm -rf ccache

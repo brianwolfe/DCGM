@@ -41,6 +41,7 @@
 #include <sys/epoll.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
+#include <system_error>
 #include <thread>
 #include <unistd.h>
 
@@ -999,10 +1000,11 @@ dcgmReturn_t RunCmdAndGetOutputWithTimeout(std::string const &cmd,
     {
         if (waitpid(childPid, &childStatus, 0) == -1)
         {
-            char errbuf[1024] = { 0 };
-            strerror_r(errno, errbuf, sizeof(errbuf));
-            output = fmt::to_string(stdoutStream);
-            log_error("Error running cmd '{}': waitpid error: '{}'", cmd, errbuf);
+            auto const waitErrno = errno;
+            output               = fmt::to_string(stdoutStream);
+            log_error("Error running cmd '{}': waitpid error: '{}'",
+                      cmd,
+                      std::error_code(waitErrno, std::generic_category()).message());
             return DCGM_ST_INIT_ERROR;
         }
         return CheckChildExitStatus(childPid, childStatus, cmd, stdoutStream, output);
@@ -1018,16 +1020,17 @@ dcgmReturn_t RunCmdAndGetOutputWithTimeout(std::string const &cmd,
         }
         if (result == -1)
         {
-            if (errno == ECHILD)
+            auto const waitErrno = errno;
+            if (waitErrno == ECHILD)
             {
                 log_warning("Child process {} already reaped (ECHILD) for cmd '{}'", childPid, cmd);
                 output = fmt::to_string(stdoutStream);
                 return DCGM_ST_INIT_ERROR;
             }
-            char errbuf[1024] = { 0 };
-            strerror_r(errno, errbuf, sizeof(errbuf));
             output = fmt::to_string(stdoutStream);
-            log_error("Error running cmd '{}': waitpid error: '{}'", cmd, errbuf);
+            log_error("Error running cmd '{}': waitpid error: '{}'",
+                      cmd,
+                      std::error_code(waitErrno, std::generic_category()).message());
             return DCGM_ST_INIT_ERROR;
         }
         auto remaining

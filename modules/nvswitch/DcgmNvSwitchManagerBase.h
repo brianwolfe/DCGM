@@ -100,8 +100,7 @@ public:
     virtual dcgmReturn_t GetEntityList(unsigned int &count,
                                        unsigned int *entities,
                                        dcgm_field_entity_group_t entityGroup,
-                                       int64_t const flags)
-        = 0;
+                                       int64_t const flags) = 0;
 
     /*************************************************************************/
     /**
@@ -367,8 +366,7 @@ protected:
     virtual dcgmReturn_t UpdateFieldsFromNvswitchLibrary(unsigned short fieldId,
                                                          DcgmFvBuffer &buf,
                                                          const std::vector<dcgm_field_update_info_t> &entities,
-                                                         timelib64_t now)
-        = 0;
+                                                         timelib64_t now) = 0;
 
     /*************************************************************************/
     /**

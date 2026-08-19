@@ -391,14 +391,14 @@ dcgmReturn_t DcgmCoreCommunication::ProcessGetSamples(dcgm_module_command_header
 
     gs.response.numSamples = gs.request.maxSamples;
     gs.response.ret        = m_cacheManagerPtr->GetSamples(gs.request.entityGroupId,
-                                                    gs.request.entityId,
-                                                    gs.request.fieldId,
-                                                    gs.response.samples,
-                                                    &gs.response.numSamples,
-                                                    gs.request.startTime,
-                                                    gs.request.endTime,
-                                                    gs.request.order,
-                                                    nullptr);
+                                                           gs.request.entityId,
+                                                           gs.request.fieldId,
+                                                           gs.response.samples,
+                                                           &gs.response.numSamples,
+                                                           gs.request.startTime,
+                                                           gs.request.endTime,
+                                                           gs.request.order,
+                                                           nullptr);
 
     memcpy(header, &gs, sizeof(gs));
 

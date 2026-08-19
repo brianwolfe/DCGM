@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.6
 
 # Copyright (c) 2024-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
@@ -15,6 +15,35 @@
 # limitations under the License.
 #
 
+FROM scratch AS downloads
+
+ARG CCACHE_URL
+ARG CLANG_URL
+ARG CMAKE_URL
+ARG GIT_URL
+ARG GIT_LFS_URL
+ARG LCOV_URL
+ARG RIPGREP_URL
+ARG SCCACHE_URL
+
+ARG CCACHE_SHA256SUM
+ARG CLANG_SHA256SUM
+ARG CMAKE_SHA256SUM
+ARG GIT_SHA256SUM
+ARG GIT_LFS_SHA256SUM
+ARG LCOV_SHA256SUM
+ARG RIPGREP_SHA256SUM
+ARG SCCACHE_SHA256SUM
+
+ADD --checksum=${CCACHE_SHA256SUM}  ${CCACHE_URL}  /ccache.tar.xz
+ADD --checksum=${CLANG_SHA256SUM}   ${CLANG_URL}   /llvm.sh
+ADD --checksum=${CMAKE_SHA256SUM}   ${CMAKE_URL}   /cmake.sh
+ADD --checksum=${GIT_SHA256SUM}     ${GIT_URL}     /git.tar.xz
+ADD --checksum=${GIT_LFS_SHA256SUM} ${GIT_LFS_URL} /git-lfs.tar.gz
+ADD --checksum=${LCOV_SHA256SUM}    ${LCOV_URL}    /lcov.tar.gz
+ADD --checksum=${RIPGREP_SHA256SUM} ${RIPGREP_URL} /ripgrep.tar.gz
+ADD --checksum=${SCCACHE_SHA256SUM} ${SCCACHE_URL} /sccache.tar.gz
+
 FROM base_image
 
 RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
@@ -24,6 +53,7 @@ RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
     apt full-upgrade --quiet --assume-yes; \
     apt install --quiet --assume-yes --no-install-recommends \
         bzip2 \
+        build-essential \
         cpio \
         curl \
         dwz \
@@ -32,6 +62,7 @@ RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
         gettext \
         graphviz \
         libedit-dev \
+        libssl-dev \
         make \
         ninja-build \
         parallel \
@@ -54,9 +85,6 @@ RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
         wget \
         xz-utils \
         yq; \
-    add-apt-repository ppa:git-core; \
-    apt update; \
-    apt install --quiet --assume-yes --no-install-recommends git; \
     pip3 install --break-system-packages \
                  --no-cache-dir \
                  --quiet \
@@ -66,8 +94,15 @@ RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
     apt clean --quiet --assume-yes; \
     rm -rf /var/lib/apt/lists/*
 
-RUN --mount=type=bind,source=scripts,target=/tmp/scripts \
+RUN --mount=type=bind,from=downloads,source=/,target=/tmp/downloads \
+    --mount=type=bind,source=scripts,target=/tmp/scripts \
     set -ex; \
     find /tmp/scripts -name '*.sh' | sort | while read -r SCRIPT; \
-    do $SCRIPT /tmp/scripts/urls.txt; \
-    done;
+    do $SCRIPT; \
+    done
+
+# Remove packages used solely for building
+RUN set -ex; \
+    apt remove -y \
+        build-essential; \
+    apt autoremove -y --purge;

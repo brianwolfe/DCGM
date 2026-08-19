@@ -16,17 +16,11 @@
 
 set -ex
 
-VERSION=21
-read -r _ URL SHA512SUM <<<$(grep '^clang ' $1)
-
+VERSION=22
 export DEBIAN_FRONTEND=noninteractive
 apt install --quiet --assume-yes software-properties-common gpg lsb-release wget
 
-curl --location --fail --output llvm.sh --retry 5 $URL
-echo "$SHA512SUM llvm.sh" | sha512sum --check -
-
-chmod +x llvm.sh
-./llvm.sh $VERSION all
+bash /tmp/downloads/llvm.sh $VERSION all
 
 apt autoremove
 apt clean
@@ -99,5 +93,3 @@ for tool in clang clang++ clang-format llvm-ar llvm-config lld; do
         exit 1
     fi
 done
-
-rm llvm.sh

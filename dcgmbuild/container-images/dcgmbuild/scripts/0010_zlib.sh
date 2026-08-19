@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^zlib ' $1)
-
-curl --location --fail --output zlib.tar.gz --retry 5 $URL
-echo "$SHA512SUM zlib.tar.gz" | sha512sum --check -
-
 mkdir --parents zlib/{src,build}
-tar xf zlib.tar.gz -C zlib/src --strip-components=1
+tar xf /tmp/downloads/zlib.tar.gz -C zlib/src --strip-components=1
 
 pushd zlib/build
 
@@ -33,4 +28,4 @@ make
 make install
 popd
 
-rm -rf zlib zlib.tar.gz
+rm -rf zlib

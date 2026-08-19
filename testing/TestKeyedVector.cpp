@@ -784,11 +784,11 @@ int TestKeyedVector::TestRemoveRangeByCursor()
 
     for (Nelem = keyedvector_size(kv); Nelem >= endTestNelem; Nelem = keyedvector_size(kv))
     {
-        startDeleteIdx = rand() % ((Nelem * 9) / 10); /* Start within first 90% of Nelem */
-        endDeleteIdx   = startDeleteIdx
-                       + rand()
-                             % std::min(((Nelem - 1) - startDeleteIdx),
-                                        endTestNelem); /* Don't delete too many. Set at max 10% */
+        startDeleteIdx       = rand() % ((Nelem * 9) / 10); /* Start within first 90% of Nelem */
+        endDeleteIdx         = startDeleteIdx
+                               + rand()
+                                     % std::min(((Nelem - 1) - startDeleteIdx),
+                                                endTestNelem); /* Don't delete too many. Set at max 10% */
         beforeStartDeleteIdx = startDeleteIdx - 1;
         afterEndDeleteIdx    = endDeleteIdx + 1;
 

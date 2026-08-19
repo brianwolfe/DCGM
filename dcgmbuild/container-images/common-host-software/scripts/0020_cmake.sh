@@ -16,12 +16,4 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^cmake ' $1)
-
-curl --location --fail --output cmake.sh --retry 5 $URL
-echo "$SHA512SUM cmake.sh" | sha512sum --check -
-
-chmod +x cmake.sh
-./cmake.sh --prefix=/usr/local --skip-license
-
-rm cmake.sh
+bash /tmp/downloads/cmake.sh --prefix=/usr/local --skip-license

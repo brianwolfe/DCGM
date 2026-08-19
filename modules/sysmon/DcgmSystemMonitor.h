@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,30 @@
 #pragma once
 
 #include "CpuHelpers.h"
+#include <cerrno>
+#include <system_error>
 #include <unordered_map>
 
 #include <dcgm_structs.h>
 
-#define SYSMON_LOG_IFSTREAM_DEBUG(path, pathDescription)                                          \
-    do                                                                                            \
-    {                                                                                             \
-        char errbuf[DCGM_MAX_STR_LENGTH] = { 0 };                                                 \
-        strerror_r(errno, errbuf, sizeof(errbuf));                                                \
-        log_debug("Couldn't open {} file '{}' for reading: '{}'", pathDescription, path, errbuf); \
+#define SYSMON_LOG_IFSTREAM_DEBUG(path, pathDescription)                              \
+    do                                                                                \
+    {                                                                                 \
+        auto const ifstreamErrno = errno;                                             \
+        log_debug("Couldn't open {} file '{}' for reading: '{}'",                     \
+                  pathDescription,                                                    \
+                  path,                                                               \
+                  std::error_code(ifstreamErrno, std::generic_category()).message()); \
     } while (0)
 
-#define SYSMON_LOG_IFSTREAM_ERROR(path, pathDescription)                                          \
-    do                                                                                            \
-    {                                                                                             \
-        char errbuf[DCGM_MAX_STR_LENGTH] = { 0 };                                                 \
-        strerror_r(errno, errbuf, sizeof(errbuf));                                                \
-        log_error("Couldn't open {} file '{}' for reading: '{}'", pathDescription, path, errbuf); \
+#define SYSMON_LOG_IFSTREAM_ERROR(path, pathDescription)                              \
+    do                                                                                \
+    {                                                                                 \
+        auto const ifstreamErrno = errno;                                             \
+        log_error("Couldn't open {} file '{}' for reading: '{}'",                     \
+                  pathDescription,                                                    \
+                  path,                                                               \
+                  std::error_code(ifstreamErrno, std::generic_category()).message()); \
     } while (0)
 
 typedef enum dcgmPowerFileType_enum

@@ -856,7 +856,8 @@ int Software::checkRowRemapping()
             && uncRemap.value.i64 >= DCGM_LIMIT_MAX_ROW_REMAP_UNCORRECTABLE)
         {
             DcgmError d { gpuId };
-            DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_UNCORRECTABLE_ROW_REMAP_LIMIT, d, gpuId, uncRemap.value.i64);
+            DCGM_ERROR_FORMAT_MESSAGE(
+                DCGM_FR_UNCORRECTABLE_ROW_REMAP_LIMIT, d, gpuId, static_cast<unsigned int>(uncRemap.value.i64));
             addError(d);
             SetResultForGpu(GetSoftwareTestName(), gpuId, NVVS_RESULT_FAIL);
         }
@@ -870,7 +871,8 @@ int Software::checkRowRemapping()
             if (ret == DCGM_ST_OK && (uncRemap.value.i64 > 0 && !DCGM_INT64_IS_BLANK(uncRemap.value.i64)))
             {
                 DcgmError d { gpuId };
-                DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_UNCORRECTABLE_ROW_REMAP, d, gpuId);
+                DCGM_ERROR_FORMAT_MESSAGE(
+                    DCGM_FR_UNCORRECTABLE_ROW_REMAP, d, gpuId, static_cast<unsigned int>(uncRemap.value.i64));
                 addError(d);
                 SetResultForGpu(GetSoftwareTestName(), gpuId, NVVS_RESULT_FAIL);
             }

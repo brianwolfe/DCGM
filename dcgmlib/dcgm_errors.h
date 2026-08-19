@@ -225,7 +225,7 @@ extern dcgm_error_meta_t dcgmErrorMeta[];
     "thermal material interface, fans, and any other components."
 #define BUG_REPORT_MSG    "Please capture an nvidia-bug-report and send it to NVIDIA."
 #define SYSTEM_TRIAGE_MSG "Check DCGM and system logs for errors. Reset GPU. Restart DCGM. Rerun diagnostics."
-#define CONFIG_MSG        "Check DCGM and system configuration. This error may be eliminated with an updated configuration."
+#define CONFIG_MSG "Check DCGM and system configuration. This error may be eliminated with an updated configuration."
 
 /*
  * Messages for the error codes. All messages must be defined in the ERROR_CODE_MSG <msg> format
@@ -654,9 +654,9 @@ extern dcgm_error_meta_t dcgmErrorMeta[];
 #define DCGM_FR_UNCONTAINED_ERROR_NEXT DCGM_FR_VOLATILE_DBE_DETECTED_NEXT
 #define DCGM_FR_CONTAINED_ERROR_NEXT \
     "Restart the application that encountered the error. Other applications on the GPU can continue running. GPU reset can be deferred until a convenient time."
-#define DCGM_FR_DBE_PENDING_PAGE_RETIREMENTS_NEXT    "Drain the GPU and reset it or reboot the node to resolve this issue."
-#define DCGM_FR_EMPTY_GPU_LIST_NEXT                  CONFIG_MSG
-#define DCGM_FR_UNCORRECTABLE_ROW_REMAP_NEXT         ""
+#define DCGM_FR_DBE_PENDING_PAGE_RETIREMENTS_NEXT "Drain the GPU and reset it or reboot the node to resolve this issue."
+#define DCGM_FR_EMPTY_GPU_LIST_NEXT               CONFIG_MSG
+#define DCGM_FR_UNCORRECTABLE_ROW_REMAP_NEXT      ""
 #define DCGM_FR_UNCORRECTABLE_ROW_REMAP_LIMIT_NEXT   TRIAGE_RUN_FIELD_DIAG_MSG
 #define DCGM_FR_PENDING_ROW_REMAP_NEXT               SYSTEM_TRIAGE_MSG
 #define DCGM_FR_BROKEN_P2P_MEMORY_DEVICE_NEXT        BUG_REPORT_MSG

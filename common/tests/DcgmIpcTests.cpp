@@ -176,6 +176,135 @@ protected:
     HangDetectMonitor hangDetectMonitor { hangDetect };
 };
 
+TEST_CASE("DcgmIpc::GetConnectAddressFamilyHint")
+{
+    CHECK(DcgmNs::Ipc::detail::GetConnectAddressFamilyHint("127.0.0.1") == AF_INET);
+    CHECK(DcgmNs::Ipc::detail::GetConnectAddressFamilyHint("::1") == AF_INET6);
+    CHECK(DcgmNs::Ipc::detail::GetConnectAddressFamilyHint("ip6-localhost") == AF_UNSPEC);
+    CHECK(DcgmNs::Ipc::detail::GetConnectAddressFamilyHint("localhost") == AF_UNSPEC);
+}
+
+TEST_CASE("DcgmIpc::ResolveTcpConnectCandidates")
+{
+    using DcgmNs::Ipc::detail::ConnectCandidate;
+    using DcgmNs::Ipc::detail::ResolveTcpConnectCandidates;
+
+    SECTION("IPv4 literal resolves to a single AF_INET candidate")
+    {
+        std::vector<ConnectCandidate> candidates;
+        REQUIRE(ResolveTcpConnectCandidates("127.0.0.1", 5555, candidates) == DCGM_ST_OK);
+        REQUIRE(candidates.size() == 1);
+        CHECK(candidates[0].addr.ss_family == AF_INET);
+    }
+
+    SECTION("IPv6 literal resolves to a single AF_INET6 candidate")
+    {
+        std::vector<ConnectCandidate> candidates;
+        REQUIRE(ResolveTcpConnectCandidates("::1", 5555, candidates) == DCGM_ST_OK);
+        REQUIRE(candidates.size() == 1);
+        CHECK(candidates[0].addr.ss_family == AF_INET6);
+    }
+
+    SECTION("localhost resolves to at least one usable candidate")
+    {
+        std::vector<ConnectCandidate> candidates;
+        REQUIRE(ResolveTcpConnectCandidates("localhost", 5555, candidates) == DCGM_ST_OK);
+        REQUIRE(!candidates.empty());
+        for (auto const &candidate : candidates)
+        {
+            CHECK((candidate.addr.ss_family == AF_INET || candidate.addr.ss_family == AF_INET6));
+            CHECK(candidate.addrLen > 0);
+        }
+    }
+
+    SECTION("Unresolvable name fails cleanly")
+    {
+        std::vector<ConnectCandidate> candidates;
+        CHECK(ResolveTcpConnectCandidates("dcgm.invalid.nonexistent.example.", 5555, candidates) != DCGM_ST_OK);
+        CHECK(candidates.empty());
+    }
+}
+
+TEST_CASE("DcgmIpc::SelectFamilyFallbackCandidates")
+{
+    using DcgmNs::Ipc::detail::ConnectCandidate;
+    using DcgmNs::Ipc::detail::SelectFamilyFallbackCandidates;
+
+    /* marker is stored in sin_port / sin6_port so each candidate is distinguishable even
+       when two candidates share the same address family. */
+    auto makeCandidate = [](sa_family_t family, uint16_t marker) {
+        ConnectCandidate candidate {};
+        if (family == AF_INET)
+        {
+            auto &sin         = reinterpret_cast<sockaddr_in &>(candidate.addr);
+            sin.sin_family    = AF_INET;
+            sin.sin_port      = htons(marker);
+            candidate.addrLen = sizeof(sockaddr_in);
+        }
+        else
+        {
+            auto &sin6        = reinterpret_cast<sockaddr_in6 &>(candidate.addr);
+            sin6.sin6_family  = AF_INET6;
+            sin6.sin6_port    = htons(marker);
+            candidate.addrLen = sizeof(sockaddr_in6);
+        }
+        return candidate;
+    };
+
+    auto markerOf = [](ConnectCandidate const &c) -> uint16_t {
+        if (c.addr.ss_family == AF_INET)
+        {
+            return ntohs(reinterpret_cast<sockaddr_in const &>(c.addr).sin_port);
+        }
+        return ntohs(reinterpret_cast<sockaddr_in6 const &>(c.addr).sin6_port);
+    };
+
+    SECTION("Dual-stack reduces to one IPv4 then one IPv6")
+    {
+        /* resolver order: IPv6:10, IPv4:20, IPv6:30, IPv4:40
+           expected:       IPv4:20 (first IPv4 in resolver order), IPv6:10 (first IPv6) */
+        std::vector<ConnectCandidate> resolved {
+            makeCandidate(AF_INET6, 10),
+            makeCandidate(AF_INET, 20),
+            makeCandidate(AF_INET6, 30),
+            makeCandidate(AF_INET, 40),
+        };
+        auto ordered = SelectFamilyFallbackCandidates(resolved);
+        REQUIRE(ordered.size() == 2);
+        CHECK(ordered[0].addr.ss_family == AF_INET); // IPv4 first, regardless of resolver order
+        CHECK(ordered[0].addrLen == sizeof(sockaddr_in));
+        CHECK(markerOf(ordered[0]) == 20); // first IPv4 in resolver order, not a later one
+        CHECK(ordered[1].addr.ss_family == AF_INET6);
+        CHECK(ordered[1].addrLen == sizeof(sockaddr_in6));
+        CHECK(markerOf(ordered[1]) == 10); // first IPv6 in resolver order, not a later one
+    }
+
+    SECTION("IPv4-only stays IPv4-only")
+    {
+        std::vector<ConnectCandidate> resolved { makeCandidate(AF_INET, 11), makeCandidate(AF_INET, 22) };
+        auto ordered = SelectFamilyFallbackCandidates(resolved);
+        REQUIRE(ordered.size() == 1);
+        CHECK(ordered[0].addr.ss_family == AF_INET);
+        CHECK(ordered[0].addrLen == sizeof(sockaddr_in));
+        CHECK(markerOf(ordered[0]) == 11); // first in resolver order
+    }
+
+    SECTION("IPv6-only stays IPv6-only (no wasted IPv4 attempt)")
+    {
+        std::vector<ConnectCandidate> resolved { makeCandidate(AF_INET6, 33) };
+        auto ordered = SelectFamilyFallbackCandidates(resolved);
+        REQUIRE(ordered.size() == 1);
+        CHECK(ordered[0].addr.ss_family == AF_INET6);
+        CHECK(ordered[0].addrLen == sizeof(sockaddr_in6));
+        CHECK(markerOf(ordered[0]) == 33);
+    }
+
+    SECTION("Empty stays empty")
+    {
+        CHECK(SelectFamilyFallbackCandidates({}).empty());
+    }
+}
+
 TEST_CASE_METHOD(DcgmIpcTestFixture, "DcgmIpc::Lifecycle")
 {
     SECTION("Construct and destroy without init")

@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^libevent ' $1)
-
-curl --location --fail --output libevent.tar.gz --retry 5 $URL
-echo "$SHA512SUM libevent.tar.gz" | sha512sum --check -
-
 mkdir --parents libevent/{build,src}
-tar xf libevent.tar.gz -C libevent/src --strip-components=1
+tar xf /tmp/downloads/libevent.tar.gz -C libevent/src --strip-components=1
 
 pushd libevent/src
 ./autogen.sh
@@ -38,4 +33,4 @@ make
 make install
 popd
 
-rm -rf libevent libevent.tar.gz
+rm -rf libevent

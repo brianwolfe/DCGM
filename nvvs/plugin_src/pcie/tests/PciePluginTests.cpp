@@ -281,19 +281,19 @@ TEST_CASE("Pcie: ProcessChildrenOutputs")
     // libnuma warning goes to stderr (properly separated now)
     childInfo.stderrStr = "libnuma: Warning: node 3 not allowed";
     // Clean JSON with delimiters on stdout
-    childInfo.stdoutStr = startDelimiter
-                          + "\n"
-                            "{\n"
-                            "    \"GPUs\" : [\n"
-                            "        {\n"
-                            "            \"gpuId\" : 2,\n"
-                            "            \"maxRxBw\" : 395002000.8,\n"
-                            "            \"maxTxBw\" : 49502000.8,\n"
-                            "            \"maxBidirBw\" : 4902.8\n"
-                            "        }\n"
-                            "    ]\n"
-                            "}\n"
-                          + endDelimiter;
+    childInfo.stdoutStr     = startDelimiter
+                              + "\n"
+                                "{\n"
+                                "    \"GPUs\" : [\n"
+                                "        {\n"
+                                "            \"gpuId\" : 2,\n"
+                                "            \"maxRxBw\" : 395002000.8,\n"
+                                "            \"maxTxBw\" : 49502000.8,\n"
+                                "            \"maxBidirBw\" : 4902.8\n"
+                                "        }\n"
+                                "    ]\n"
+                                "}\n"
+                              + endDelimiter;
     childInfo.readOutputRet = 0;
     childInfo.readErrorRet  = 0;
     childrenInfo.push_back(childInfo);
@@ -459,8 +459,8 @@ TEST_CASE("Pcie: ExtractJson with delimiters")
         std::string output    = "libnuma: Warning: node 3 not allowed\n"
                                 "libnuma: Warning: node 4 not allowed\n"
                                 "libnuma: Warning: node 5 not allowed\n"
-                             + startDelimiter + "\n" + jsonValue + endDelimiter;
-        auto result = ExtractJson(output);
+                                + startDelimiter + "\n" + jsonValue + endDelimiter;
+        auto result           = ExtractJson(output);
         CHECK(result == jsonValue);
     }
 

@@ -312,6 +312,8 @@ public:
                                                 int msgLength,
                                                 dcgmReturn_t status);
 
+    dcgmReturn_t SendMessageViaIpc(dcgm_connection_id_t connectionId, std::unique_ptr<DcgmMessage> message);
+
     void NotifyLoggingSeverityChange();
 
     /* Helpers to access m_persistAfterDisconnect. These all need to lock m_lock to

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -539,7 +539,7 @@ SCENARIO("NVVS correctly processes command line arguments")
     {
         SETUP();
         char statsDir[] = "/tmp/dcgm-diag-test-stats-dir-XXXXXX";
-        mkdtemp(statsDir);
+        REQUIRE(mkdtemp(statsDir) != nullptr);
 
         WrapperNvidiaValidationSuite nvvs;
 
@@ -605,7 +605,7 @@ SCENARIO("NVVS correctly processes command line arguments")
     {
         SETUP();
         char statsDir[] = "/tmp/dcgm-diag-test-stats-dir-XXXXXX";
-        mkdtemp(statsDir);
+        REQUIRE(mkdtemp(statsDir) != nullptr);
 
         WrapperNvidiaValidationSuite nvvs;
 
@@ -624,7 +624,7 @@ SCENARIO("NVVS correctly processes command line arguments")
         {
             SETUP();
             char statsDir[] = "/tmp/dcgm-diag-test-stats-dir-XXXXXX";
-            mkdtemp(statsDir);
+            REQUIRE(mkdtemp(statsDir) != nullptr);
 
             WrapperNvidiaValidationSuite nvvs;
 
@@ -641,7 +641,7 @@ SCENARIO("NVVS correctly processes command line arguments")
         {
             SETUP();
             char statsDir[] = "/tmp/dcgm-diag-test-stats-dir-XXXXXX";
-            mkdtemp(statsDir);
+            REQUIRE(mkdtemp(statsDir) != nullptr);
 
             WrapperNvidiaValidationSuite nvvs;
 
@@ -661,7 +661,7 @@ SCENARIO("NVVS correctly processes command line arguments")
         {
             SETUP();
             char statsDir[] = "/tmp/dcgm-diag-test-stats-dir-XXXXXX";
-            mkdtemp(statsDir);
+            REQUIRE(mkdtemp(statsDir) != nullptr);
 
             WrapperNvidiaValidationSuite nvvs;
 
@@ -678,7 +678,7 @@ SCENARIO("NVVS correctly processes command line arguments")
         {
             SETUP();
             char statsDir[] = "/tmp/dcgm-diag-test-stats-dir-XXXXXX";
-            mkdtemp(statsDir);
+            REQUIRE(mkdtemp(statsDir) != nullptr);
 
             WrapperNvidiaValidationSuite nvvs;
 

@@ -18,72 +18,56 @@
 
 #include <DcgmHostEngineHandler.h>
 #include <DcgmProtocol.h>
+#ifdef INJECTION_LIBRARY_AVAILABLE
+#include <UnitTestHelpers.h>
+#include <nvml_injection.h>
+#endif
+#include <DcgmRequest.h>
+
+#include <algorithm>
+#include <cstddef>
 #include <dcgm_core_structs.h>
 #include <dcgm_structs.h>
+#include <dcgm_structs_internal.h>
+#include <diag/dcgm_diag_structs.h>
+#include <health/dcgm_health_structs.h>
+#include <nvsdm/nvsdm.h>
+#include <nvswitch/dcgm_nvswitch_structs.h>
+#include <optional>
+#include <sysmon/dcgm_sysmon_structs.h>
+#include <unordered_set>
+#include <vector>
 
 #include <climits>
 #include <vector>
 
-TEST_CASE("ResizeMsgBufferForSubCommand: known subCommands resize correctly", "[HostEngineHandler]")
+/* Minimal concrete DcgmRequest subclass for testing AddRequestWatcher */
+class TestRequest : public DcgmRequest
 {
-    auto [subCmd, expectedSize] = GENERATE(table<unsigned int, std::size_t>({
-        { DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V1, sizeof(dcgm_core_msg_entities_get_latest_values_v1) },
-        { DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V2, sizeof(dcgm_core_msg_entities_get_latest_values_v2) },
-        { DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V4, sizeof(dcgm_core_msg_entities_get_latest_values_v4) },
-        /* DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3 message exceeds DCGM_PROTO_MAX_MESSAGE_SIZE.
-         * The currently expected behavior is to limit to the maximum size. */
-        { DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3, DCGM_PROTO_MAX_MESSAGE_SIZE },
-        { DCGM_CORE_SR_GET_MULTIPLE_VALUES_FOR_FIELD_V1, sizeof(dcgm_core_msg_get_multiple_values_for_field_v1) },
-        { DCGM_CORE_SR_GET_MULTIPLE_VALUES_FOR_FIELD_V2, sizeof(dcgm_core_msg_get_multiple_values_for_field_v2) },
-    }));
+public:
+    TestRequest()
+        : DcgmRequest(DCGM_REQUEST_ID_NONE)
+    {}
+    int ProcessMessage(std::unique_ptr<DcgmMessage> /*msg*/) override
+    {
+        return DCGM_ST_OK;
+    }
+};
 
-    std::vector<char> buf(sizeof(dcgm_module_command_header_t), '\0');
-    dcgmReturn_t ret = ResizeMsgBufferForSubCommand(DcgmModuleIdCore, subCmd, buf, DCGM_PROTO_MAX_MESSAGE_SIZE);
-
-    CHECK(ret == DCGM_ST_OK);
-    CHECK(buf.size() == expectedSize);
-    CHECK(buf.size() <= DCGM_PROTO_MAX_MESSAGE_SIZE);
-
-    auto const *header = reinterpret_cast<dcgm_module_command_header_t const *>(buf.data());
-    CHECK(header->length == static_cast<unsigned int>(expectedSize));
-}
-
-TEST_CASE("ResizeMsgBufferForSubCommand: unrecognized inputs leave buffer unchanged", "[HostEngineHandler]")
+/* DcgmRequest subclass that captures every message delivered to it */
+class CapturingRequest : public DcgmRequest
 {
-    auto [moduleId, subCmd] = GENERATE(table<unsigned int, unsigned int>({
-        { DcgmModuleIdCore, 0u },
-        { DcgmModuleIdCore, 999u },
-        { DcgmModuleIdCore, UINT_MAX },
-        { DcgmModuleIdNvSwitch, DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3 },
-        { DcgmModuleIdDiag, DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3 },
-        { DcgmModuleIdPolicy, DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3 },
-        { DcgmModuleIdNvSwitch, DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V4 },
-        { DcgmModuleIdDiag, DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V4 },
-        { DcgmModuleIdPolicy, DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V4 },
-    }));
-
-    std::size_t const originalSize = sizeof(dcgm_module_command_header_t);
-    std::vector<char> buf(originalSize, '\0');
-    dcgmReturn_t ret = ResizeMsgBufferForSubCommand(moduleId, subCmd, buf, DCGM_PROTO_MAX_MESSAGE_SIZE);
-
-    CHECK(ret == DCGM_ST_OK);
-    CHECK(buf.size() == originalSize);
-}
-
-TEST_CASE("ResizeMsgBufferForSubCommand: resize is capped to maxMessageSize", "[HostEngineHandler]")
-{
-    unsigned int const subCmd
-        = GENERATE(DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3, DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V4);
-    std::vector<char> buf(sizeof(dcgm_module_command_header_t), '\0');
-    std::size_t const cap = sizeof(dcgm_module_command_header_t) + 1;
-    dcgmReturn_t ret      = ResizeMsgBufferForSubCommand(DcgmModuleIdCore, subCmd, buf, cap);
-
-    CHECK(ret == DCGM_ST_OK);
-    CHECK(buf.size() == cap);
-
-    auto const *header = reinterpret_cast<dcgm_module_command_header_t const *>(buf.data());
-    CHECK(header->length == static_cast<unsigned int>(cap));
-}
+public:
+    CapturingRequest()
+        : DcgmRequest(DCGM_REQUEST_ID_NONE)
+    {}
+    std::vector<std::unique_ptr<DcgmMessage>> received;
+    int ProcessMessage(std::unique_ptr<DcgmMessage> msg) override
+    {
+        received.push_back(std::move(msg));
+        return DCGM_ST_OK;
+    }
+};
 
 TEST_CASE("DcgmHostEngineHandler", "[HostEngineHandler]")
 {

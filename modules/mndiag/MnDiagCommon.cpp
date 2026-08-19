@@ -112,9 +112,9 @@ std::expected<std::string, std::system_error> get_mnubergemm_binary_path(int cud
 
     // Construct the plugins path
     const bool productionInstallation = execPath.filename() == DCGM_INSTALL_BINDIR;
-    const auto &pluginsPath           = productionInstallation
-                                            ? std::filesystem::path(DCGM_INSTALL_LIBEXECDIR "/" DCGM_PACKAGE_NAME "/plugins")
-                                            : std::filesystem::path(DCGM_TEST_PLUGINS_DIR);
+    const auto &pluginsPath = productionInstallation
+                                  ? std::filesystem::path(DCGM_INSTALL_LIBEXECDIR "/" DCGM_PACKAGE_NAME "/plugins")
+                                  : std::filesystem::path(DCGM_TEST_PLUGINS_DIR);
 
     execPath.replace_filename(pluginsPath);
 

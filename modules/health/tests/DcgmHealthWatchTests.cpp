@@ -28,6 +28,7 @@
 #include <dcgm_structs.h>
 #include <map>
 #include <optional>
+#include <string>
 #include <unordered_map>
 
 const char *EntityToString(dcgm_field_entity_group_t entityGroupId);
@@ -3608,6 +3609,13 @@ TEST_CASE_METHOD(DcgmHealthWatchGetSamplesFixture, "DcgmHealthWatch::MonitorMem 
         REQUIRE(healthResponse.incidents[0].health == params.expectedHealth);
         REQUIRE(healthResponse.incidents[0].system == DCGM_HEALTH_WATCH_MEM);
         REQUIRE(healthResponse.incidents[0].error.code == params.errorCode);
+        if (params.errorCode == DCGM_FR_ROW_REMAP_FAILURE)
+        {
+            std::string const expectedMessage
+                = "GPU " + std::to_string(testGpuId) + " had uncorrectable memory errors and row remapping failed.";
+            CHECK(std::string_view(healthResponse.incidents[0].error.msg).find(expectedMessage)
+                  != std::string_view::npos);
+        }
     }
 }
 

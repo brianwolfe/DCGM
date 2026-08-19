@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^sccache ' $1)
-
-curl --location --fail --output sccache.tar.gz --retry 5 $URL
-echo "$SHA512SUM sccache.tar.gz" | sha512sum --check -
-
 mkdir sccache
-tar xzf sccache.tar.gz -C sccache --strip-components=1
+tar xzf /tmp/downloads/sccache.tar.gz -C sccache --strip-components=1
 
 cp -a sccache/sccache /usr/local/bin/
-rm -rf sccache sccache.tar.gz
+rm -rf sccache

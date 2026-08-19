@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,16 @@
 #include <DcgmDiagResponseWrapper.h>
 #include <DcgmError.h>
 #include <UniquePtrUtil.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <dcgm_structs.h>
 #include <fstream>
 #include <iostream>
 #include <stddef.h>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 
 dcgmCoreCallbacks_t g_coreCallbacks;
 
@@ -124,19 +129,32 @@ std::string TestDiagManager::GetTag()
     return std::string("diagmanager");
 }
 
-void TestDiagManager::CreateDummyScript()
+bool TestDiagManager::CreateDummyScript()
 {
     std::ofstream dummyScript;
     dummyScript.open("dummy_script");
     dummyScript << "#!/bin/bash" << std::endl;
     dummyScript << "echo \"Dummy script successfully executed with args $1 $2 $3\"" << std::endl;
     dummyScript.close();
-    system("chmod 755 dummy_script");
+    if (chmod("dummy_script", 0755) != 0)
+    {
+        auto const chmodErrno = errno;
+        fprintf(stderr, "Failed to chmod dummy_script: %s\n", std::strerror(chmodErrno));
+        return false;
+    }
+    return true;
 }
 
 void TestDiagManager::RemoveDummyScript()
 {
-    system("rm -f dummy_script");
+    if (unlink("dummy_script") != 0)
+    {
+        auto const unlinkErrno = errno;
+        if (unlinkErrno != ENOENT)
+        {
+            fprintf(stderr, "Failed to remove dummy_script: %s\n", std::strerror(unlinkErrno));
+        }
+    }
 }
 
 int TestDiagManager::TestPositiveDummyExecutable()
@@ -162,12 +180,16 @@ int TestDiagManager::TestPositiveDummyExecutable()
     g_coreCallbacks.poster = &dcc;
 
     DcgmDiagManager *am = new DcgmDiagManager(g_coreCallbacks);
+    DcgmNs::Defer deleteAm([&]() {
+        delete am;
+        am = 0;
+    });
 
-    CreateDummyScript();
+    if (!CreateDummyScript())
+    {
+        return -1;
+    }
     result = am->PerformDummyTestExecute(&stdoutStr, &stderrStr);
-
-    delete (am);
-    am = 0;
 
     if (result != DCGM_ST_OK)
         return -1;
@@ -896,14 +918,20 @@ int TestDiagManager::TestInvalidVersion()
     return DCGM_ST_OK;
 }
 
-void TestDiagManager::CreateDummyFailScript()
+bool TestDiagManager::CreateDummyFailScript()
 {
     std::ofstream dummyScript;
     dummyScript.open("dummy_script");
     dummyScript << "#!/bin/bash" << std::endl;
     dummyScript << "kaladin_dalinar_roshar_adolin_renarin_shallan_jasnah" << std::endl;
     dummyScript.close();
-    system("chmod 755 dummy_script");
+    if (chmod("dummy_script", 0755) != 0)
+    {
+        auto const chmodErrno = errno;
+        fprintf(stderr, "Failed to chmod dummy_script: %s\n", std::strerror(chmodErrno));
+        return false;
+    }
+    return true;
 }
 
 int TestDiagManager::TestPerformExternalCommand()
@@ -933,7 +961,10 @@ int TestDiagManager::TestPerformExternalCommand()
 
     wrapper.SetVersion(diagResponse.get());
     // Make the script that will fail
-    CreateDummyFailScript();
+    if (!CreateDummyFailScript())
+    {
+        return -1;
+    }
     am.PerformExternalCommand(dummyCmds, wrapper, 0, &stdoutStr, &stderrStr);
     if (stdoutStr.empty() && stderrStr.empty())
     {

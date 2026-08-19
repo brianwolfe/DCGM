@@ -177,13 +177,13 @@ SCENARIO("Setting and unsetting watches")
         {
             fieldIds[0] = 1;
             retSt       = nsm.WatchField(DCGM_FE_GPU,
-                                   1,        // entity ID
-                                   1,        // numFieldIds
-                                   fieldIds, // field IDs
-                                   1000,     // watch interval in Usec
-                                   watcher.watcherType,
-                                   watcher.connectionId,
-                                   true);
+                                         1,        // entity ID
+                                         1,        // numFieldIds
+                                         fieldIds, // field IDs
+                                         1000,     // watch interval in Usec
+                                         watcher.watcherType,
+                                         watcher.connectionId,
+                                         true);
 
             CHECK(retSt == DCGM_ST_BADPARAM);
         }
@@ -194,13 +194,13 @@ SCENARIO("Setting and unsetting watches")
         // Now prep for the next few tests
         fieldIds[0] = 1;
         retSt       = nsm.WatchField(DCGM_FE_SWITCH,
-                               1,        // entity ID
-                               1,        // numFieldIds
-                               fieldIds, // field IDs
-                               1000,     // watch interval in Usec
-                               watcher.watcherType,
-                               watcher.connectionId,
-                               true);
+                                     1,        // entity ID
+                                     1,        // numFieldIds
+                                     fieldIds, // field IDs
+                                     1000,     // watch interval in Usec
+                                     watcher.watcherType,
+                                     watcher.connectionId,
+                                     true);
         CHECK(retSt == DCGM_ST_OK);
 
         watcher.connectionId = 10;

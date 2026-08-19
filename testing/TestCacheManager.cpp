@@ -930,15 +930,15 @@ int TestCacheManager::AddPowerUsageWatchAllGpusHelper(DcgmCacheManager *cacheMan
         bool updateOnFirstWatch = false; /* All of the callers of this call UpdateFields() right after */
         bool wereFirstWatcher   = false;
         st                      = cacheManager->AddFieldWatch(DCGM_FE_GPU,
-                                         m_gpus[i],
-                                         DCGM_FI_DEV_BOARD_POWER_WATTS,
-                                         1000000,
-                                         86400.0,
-                                         0,
-                                         watcher,
-                                         false,
-                                         updateOnFirstWatch,
-                                         wereFirstWatcher);
+                                                              m_gpus[i],
+                                                              DCGM_FI_DEV_BOARD_POWER_WATTS,
+                                                              1000000,
+                                                              86400.0,
+                                                              0,
+                                                              watcher,
+                                                              false,
+                                                              updateOnFirstWatch,
+                                                              wereFirstWatcher);
         if (st)
         {
             fprintf(stderr, "AddFieldWatch returned %d for gpu %u\n", st, m_gpus[i]);
@@ -988,14 +988,14 @@ int TestCacheManager::TestRecording()
 
         Msamples = 1; /* Only fetch one */
         st       = cacheManager->GetSamples(DCGM_FE_GPU,
-                                      m_gpus[i],
-                                      DCGM_FI_DEV_BOARD_POWER_WATTS,
-                                      &sample,
-                                      &Msamples,
-                                      0,
-                                      0,
-                                      DCGM_ORDER_ASCENDING,
-                                      nullptr);
+                                            m_gpus[i],
+                                            DCGM_FI_DEV_BOARD_POWER_WATTS,
+                                            &sample,
+                                            &Msamples,
+                                            0,
+                                            0,
+                                            DCGM_ORDER_ASCENDING,
+                                            nullptr);
         if (st != DCGM_ST_OK)
         {
             fprintf(stderr, "Got st %d from GetSamples() for gpu %u\n", st, m_gpus[i]);
@@ -1025,15 +1025,15 @@ int TestCacheManager::TestRecordingGlobal()
         = true; /* Do one case where we tell it to update on first watch and don't call UpdateAllFields() after */
     bool wereFirstWatcher = false;
     st                    = cacheManager->AddFieldWatch(DCGM_FE_NONE,
-                                     0,
-                                     DCGM_FI_SYSTEM_DRIVER_VERSION,
-                                     1000000,
-                                     86400.0,
-                                     0,
-                                     watcher,
-                                     false,
-                                     updateOnFirstWatch,
-                                     wereFirstWatcher);
+                                                        0,
+                                                        DCGM_FI_SYSTEM_DRIVER_VERSION,
+                                                        1000000,
+                                                        86400.0,
+                                                        0,
+                                                        watcher,
+                                                        false,
+                                                        updateOnFirstWatch,
+                                                        wereFirstWatcher);
     if (st)
     {
         fprintf(stderr, "AddGlobalFieldWatch returned %d \n", st);

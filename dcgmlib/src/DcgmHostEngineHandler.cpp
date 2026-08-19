@@ -21,6 +21,7 @@
 
 #include "DcgmCoreCommunication.h"
 #include "DcgmGroupManager.h"
+#include "DcgmModuleCommandValidation.h"
 
 #include <DcgmLogging.h>
 #include <DcgmMetadataMgr.h>
@@ -44,8 +45,10 @@
 #include <DcgmProtocol.h>
 #include <dcgm_nvml.h>
 #include <nvcmvalue.h>
+#include <nvsdm/nvsdm.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <dlfcn.h> //dlopen, dlsym..etc
 #include <iostream>
@@ -732,6 +735,14 @@ dcgmReturn_t DcgmHostEngineHandler::HelperCreateFakeEntities(dcgmCreateFakeEntit
         return DCGM_ST_BADPARAM;
     }
 
+    if (createFakeEntities->numToCreate > DCGM_MAX_HIERARCHY_INFO)
+    {
+        log_error("Cannot create {} fake entities because the request only has room for {} entity entries.",
+                  createFakeEntities->numToCreate,
+                  DCGM_MAX_HIERARCHY_INFO);
+        return DCGM_ST_BADPARAM;
+    }
+
     for (unsigned int i = 0; i < createFakeEntities->numToCreate; i++)
     {
         switch (createFakeEntities->entityList[i].entity.entityGroupId)
@@ -1266,6 +1277,13 @@ dcgmReturn_t DcgmHostEngineHandler::SendRawMessageToClient(dcgm_connection_id_t 
 }
 
 /*****************************************************************************/
+dcgmReturn_t DcgmHostEngineHandler::SendMessageViaIpc(dcgm_connection_id_t connectionId,
+                                                      std::unique_ptr<DcgmMessage> message)
+{
+    return m_dcgmIpc->SendMessage(connectionId, std::move(message), false);
+}
+
+/*****************************************************************************/
 void DcgmHostEngineHandler::NotifyLoggingSeverityChange()
 {
     dcgm_core_msg_logging_changed_t msg;
@@ -1438,48 +1456,34 @@ static_assert(sizeof(dcgm_core_msg_get_multiple_values_for_field_v1) <= DCGM_PRO
 static_assert(sizeof(dcgm_core_msg_get_multiple_values_for_field_v2) <= DCGM_PROTO_MAX_MESSAGE_SIZE,
               "dcgm_core_msg_get_multiple_values_for_field_v2 exceeds DCGM_PROTO_MAX_MESSAGE_SIZE");
 
-dcgmReturn_t ResizeMsgBufferForSubCommand(unsigned int moduleId,
-                                          unsigned int subCommand,
-                                          std::vector<char> &msgBytes,
-                                          std::size_t maxMessageSize)
+namespace
 {
-    if (moduleId != DcgmModuleIdCore)
-    {
-        return DCGM_ST_OK;
-    }
+uint16_t constexpr DCGM_PACKED_MANAGEMENT_PORT_INDEX = static_cast<uint16_t>(NVSDM_MANAGEMENT_PORT_NUMBER);
+} // namespace
 
-    std::size_t newSize = 0;
-    switch (subCommand)
+std::optional<dcgm_link_t> ParseLinkEntityId(dcgm_field_eid_t entityId) noexcept
+{
+    dcgm_link_t link {};
+    link.raw = entityId;
+
+    switch (link.parsed.type)
     {
-        case DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V4:
-            newSize = sizeof(dcgm_core_msg_entities_get_latest_values_v4);
-            break;
-        case DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3:
-            newSize = sizeof(dcgm_core_msg_entities_get_latest_values_v3);
-            break;
-        case DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V2:
-            newSize = sizeof(dcgm_core_msg_entities_get_latest_values_v2);
-            break;
-        case DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V1:
-            newSize = sizeof(dcgm_core_msg_entities_get_latest_values_v1);
-            break;
-        case DCGM_CORE_SR_GET_MULTIPLE_VALUES_FOR_FIELD_V1:
-            newSize = sizeof(dcgm_core_msg_get_multiple_values_for_field_v1);
-            break;
-        case DCGM_CORE_SR_GET_MULTIPLE_VALUES_FOR_FIELD_V2:
-            newSize = sizeof(dcgm_core_msg_get_multiple_values_for_field_v2);
-            break;
+        case DCGM_FE_GPU:
+            return link;
+
+        case DCGM_FE_SWITCH:
+            /* NVSDM reports the management port as 0xFFFFFFFF, but dcgm_link_t
+             * stores link indexes in 16 bits, so the packed LINK entity carries 0xFFFF. */
+            if (link.parsed.index >= DCGM_NVLINK_MAX_LINKS_PER_NVSWITCH
+                && link.parsed.index != DCGM_PACKED_MANAGEMENT_PORT_INDEX)
+            {
+                return std::nullopt;
+            }
+            return link;
+
         default:
-            log_debug("Unknown subCommand {}, leaving buffer unchanged", subCommand);
-            return DCGM_ST_OK;
+            return std::nullopt;
     }
-
-    newSize = std::min(newSize, maxMessageSize);
-    msgBytes.resize(newSize);
-    auto *header   = reinterpret_cast<dcgm_module_command_header_t *>(msgBytes.data());
-    header->length = static_cast<unsigned int>(newSize);
-
-    return DCGM_ST_OK;
 }
 
 bool DcgmHostEngineHandler::IsCoreModuleSubcommandDenied(const dcgm_module_command_header_t *moduleCommand)
@@ -1492,8 +1496,6 @@ bool DcgmHostEngineHandler::IsCoreModuleSubcommandDenied(const dcgm_module_comma
 dcgmReturn_t DcgmHostEngineHandler::ProcessModuleCommandMsg(dcgm_connection_id_t connectionId,
                                                             std::unique_ptr<DcgmMessage> message)
 {
-    dcgmReturn_t retSt = DCGM_ST_OK;
-
     auto msgBytes  = message->GetMsgBytesPtr();
     auto msgHeader = message->GetMessageHdr();
 
@@ -1535,11 +1537,22 @@ dcgmReturn_t DcgmHostEngineHandler::ProcessModuleCommandMsg(dcgm_connection_id_t
         return DCGM_ST_BADPARAM;
     }
 
-    dcgmReturn_t resizeRet = ResizeMsgBufferForSubCommand(
-        moduleCommand->moduleId, moduleCommand->subCommand, *msgBytes, DCGM_PROTO_MAX_MESSAGE_SIZE);
-    if (resizeRet != DCGM_ST_OK)
+    auto const validation = PrepareModuleCommandForDispatch(*msgBytes, DCGM_PROTO_MAX_MESSAGE_SIZE);
+    if (validation.status != DCGM_ST_OK || !validation.shouldDispatch)
     {
-        return resizeRet;
+        if (!validation.shouldRespond)
+        {
+            return validation.status;
+        }
+
+        if (moduleCommand->requestId == DCGM_REQUEST_ID_NONE)
+        {
+            moduleCommand->requestId = msgHeader->requestId;
+        }
+        moduleCommand->connectionId = connectionId;
+        message->UpdateMsgHdr(
+            DCGM_MSG_MODULE_COMMAND, moduleCommand->requestId, validation.status, moduleCommand->length);
+        return SendMessageViaIpc(connectionId, std::move(message));
     }
     moduleCommand = (dcgm_module_command_header_t *)msgBytes->data();
 
@@ -1562,8 +1575,7 @@ dcgmReturn_t DcgmHostEngineHandler::ProcessModuleCommandMsg(dcgm_connection_id_t
 
     message->UpdateMsgHdr(DCGM_MSG_MODULE_COMMAND, moduleCommand->requestId, requestStatus, moduleCommand->length);
 
-    m_dcgmIpc->SendMessage(connectionId, std::move(message), false);
-    return retSt;
+    return SendMessageViaIpc(connectionId, std::move(message));
 }
 
 /*****************************************************************************/
@@ -3338,14 +3350,14 @@ dcgmReturn_t DcgmHostEngineHandler::GetProcessInfo(unsigned int groupId, dcgmPid
 
         singleInfo->numXidCriticalErrors = Msamples;
         dcgmReturn                       = mpCacheManager->GetSamples(DCGM_FE_GPU,
-                                                singleInfo->gpuId,
-                                                DCGM_FI_DEV_XID_ERROR,
-                                                samples,
-                                                &singleInfo->numXidCriticalErrors,
-                                                startTime,
-                                                endTime,
-                                                DCGM_ORDER_ASCENDING,
-                                                nullptr);
+                                                                      singleInfo->gpuId,
+                                                                      DCGM_FI_DEV_XID_ERROR,
+                                                                      samples,
+                                                                      &singleInfo->numXidCriticalErrors,
+                                                                      startTime,
+                                                                      endTime,
+                                                                      DCGM_ORDER_ASCENDING,
+                                                                      nullptr);
 
         if (dcgmReturn != DCGM_ST_OK)
         {
@@ -3365,7 +3377,7 @@ dcgmReturn_t DcgmHostEngineHandler::GetProcessInfo(unsigned int groupId, dcgmPid
         mpCacheManager->FreeSamples(samples, singleInfo->numXidCriticalErrors, DCGM_FI_DEV_XID_ERROR);
 
         singleInfo->numOtherComputePids = (int)DCGM_ARRAY_CAPACITY(singleInfo->otherComputePids);
-        dcgmReturn                      = mpCacheManager->GetUniquePidLists(DCGM_FE_GPU,
+        dcgmReturn = mpCacheManager->GetUniquePidLists(DCGM_FE_GPU,
                                                        singleInfo->gpuId,
                                                        DCGM_FI_DEV_COMPUTE_PIDS,
                                                        pidInfo->pid,
@@ -3386,7 +3398,7 @@ dcgmReturn_t DcgmHostEngineHandler::GetProcessInfo(unsigned int groupId, dcgmPid
                         singleInfo->numOtherComputePids);
 
         singleInfo->numOtherGraphicsPids = (int)DCGM_ARRAY_CAPACITY(singleInfo->otherGraphicsPids);
-        dcgmReturn                       = mpCacheManager->GetUniquePidLists(DCGM_FE_GPU,
+        dcgmReturn = mpCacheManager->GetUniquePidLists(DCGM_FE_GPU,
                                                        singleInfo->gpuId,
                                                        DCGM_FI_DEV_GRAPHICS_PIDS,
                                                        pidInfo->pid,
@@ -4073,14 +4085,14 @@ dcgmReturn_t DcgmHostEngineHandler::JobGetStats(const std::string &jobId, dcgmJo
 
         singleInfo->numXidCriticalErrors = Msamples;
         dcgmReturn                       = mpCacheManager->GetSamples(DCGM_FE_GPU,
-                                                singleInfo->gpuId,
-                                                DCGM_FI_DEV_XID_ERROR,
-                                                samples,
-                                                &singleInfo->numXidCriticalErrors,
-                                                startTime,
-                                                endTime,
-                                                DCGM_ORDER_ASCENDING,
-                                                nullptr);
+                                                                      singleInfo->gpuId,
+                                                                      DCGM_FI_DEV_XID_ERROR,
+                                                                      samples,
+                                                                      &singleInfo->numXidCriticalErrors,
+                                                                      startTime,
+                                                                      endTime,
+                                                                      DCGM_ORDER_ASCENDING,
+                                                                      nullptr);
         if (dcgmReturn != DCGM_ST_OK)
         {
             DCGM_LOG_ERROR << "Got " << dcgmReturn << " from GetSamples()";
@@ -4101,13 +4113,13 @@ dcgmReturn_t DcgmHostEngineHandler::JobGetStats(const std::string &jobId, dcgmJo
 
         singleInfo->numComputePids = (int)DCGM_ARRAY_CAPACITY(singleInfo->computePidInfo);
         dcgmReturn                 = mpCacheManager->GetUniquePidLists(DCGM_FE_GPU,
-                                                       singleInfo->gpuId,
-                                                       DCGM_FI_DEV_COMPUTE_PIDS,
-                                                       0,
-                                                       singleInfo->computePidInfo,
-                                                       (unsigned int *)&singleInfo->numComputePids,
-                                                       startTime,
-                                                       endTime);
+                                                                       singleInfo->gpuId,
+                                                                       DCGM_FI_DEV_COMPUTE_PIDS,
+                                                                       0,
+                                                                       singleInfo->computePidInfo,
+                                                                       (unsigned int *)&singleInfo->numComputePids,
+                                                                       startTime,
+                                                                       endTime);
         if (dcgmReturn != DCGM_ST_OK)
         {
             DCGM_LOG_ERROR << "Got " << dcgmReturn << " from GetUniquePidLists()";
@@ -4122,13 +4134,13 @@ dcgmReturn_t DcgmHostEngineHandler::JobGetStats(const std::string &jobId, dcgmJo
 
         singleInfo->numGraphicsPids = (int)DCGM_ARRAY_CAPACITY(singleInfo->graphicsPidInfo);
         dcgmReturn                  = mpCacheManager->GetUniquePidLists(DCGM_FE_GPU,
-                                                       singleInfo->gpuId,
-                                                       DCGM_FI_DEV_GRAPHICS_PIDS,
-                                                       0,
-                                                       singleInfo->graphicsPidInfo,
-                                                       (unsigned int *)&singleInfo->numGraphicsPids,
-                                                       startTime,
-                                                       endTime);
+                                                                        singleInfo->gpuId,
+                                                                        DCGM_FI_DEV_GRAPHICS_PIDS,
+                                                                        0,
+                                                                        singleInfo->graphicsPidInfo,
+                                                                        (unsigned int *)&singleInfo->numGraphicsPids,
+                                                                        startTime,
+                                                                        endTime);
         if (dcgmReturn != DCGM_ST_OK)
         {
             DCGM_LOG_ERROR << "Got " << dcgmReturn << " from GetUniquePidLists()";
@@ -4987,10 +4999,10 @@ dcgmReturn_t DcgmHostEngineHandler::RunServer(unsigned short portNumber,
             DcgmIpcDomainServerParams_t domainParams {};
             domainParams.domainSocketPath = socketPath;
             dcgmReturn                    = m_dcgmIpc->Init(domainParams,
-                                         DcgmHostEngineHandler::StaticProcessMessage,
-                                         this,
-                                         DcgmHostEngineHandler::StaticProcessDisconnect,
-                                         this);
+                                                            DcgmHostEngineHandler::StaticProcessMessage,
+                                                            this,
+                                                            DcgmHostEngineHandler::StaticProcessDisconnect,
+                                                            this);
             break;
         }
         case DcgmConnectionTypeTcp:
@@ -4999,10 +5011,10 @@ dcgmReturn_t DcgmHostEngineHandler::RunServer(unsigned short portNumber,
             tcpParams.bindIPAddress = socketPath;
             tcpParams.port          = portNumber;
             dcgmReturn              = m_dcgmIpc->Init(tcpParams,
-                                         DcgmHostEngineHandler::StaticProcessMessage,
-                                         this,
-                                         DcgmHostEngineHandler::StaticProcessDisconnect,
-                                         this);
+                                                      DcgmHostEngineHandler::StaticProcessMessage,
+                                                      this,
+                                                      DcgmHostEngineHandler::StaticProcessDisconnect,
+                                                      this);
             break;
         }
         case DcgmConnectionTypeVsock:

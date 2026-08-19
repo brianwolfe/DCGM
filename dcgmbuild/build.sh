@@ -25,6 +25,14 @@ fi
 
 [[ $# -eq 0 ]] || export ARCHITECTURES="$(IFS=,; echo "$*")"
 
+BAKE_ARGS=()
+
+# Add dependency download argument flags
+while IFS= read -r FLAG
+do
+    BAKE_ARGS+=("$FLAG")
+done < <(./dependency_flags.sh bake)
+
 GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null)
 
 if [[ $? -eq 0 ]]
@@ -38,4 +46,4 @@ then
     export GIT_REFERENCE="$(git rev-parse --abbrev-ref HEAD)"
 fi
 
-docker buildx bake
+docker buildx bake "${BAKE_ARGS[@]}"

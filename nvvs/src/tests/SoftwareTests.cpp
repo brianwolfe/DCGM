@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,32 @@
 #include <Software.h>
 #include <UniquePtrUtil.h>
 #include <dcgm_structs.h>
+#include <string>
+#include <string_view>
 
 extern long long g_unrepairableMemoryFlagVal;
 extern char g_graphicsPidsBlobVal;
+extern long long g_sramExceededVal;
+extern dcgmReturn_t g_sramExceededFieldStatus;
+extern dcgmReturn_t g_graphicsPidsFieldStatus;
+extern long long g_pendingRetirementsVal;
+extern dcgmReturn_t g_pendingRetirementsFieldStatus;
+extern long long g_dbeVolVal;
+extern long long g_dbeTotalVal;
+extern long long g_sbeTotalVal;
+extern long long g_rowRemapFailedVal;
+extern long long g_rowRemapPendingVal;
+extern long long g_rowRemapUncorrectableTotalVal;
+extern dcgmReturn_t g_memoryUnrepairableFieldStatus;
+extern long long g_inforomValidVal;
+extern dcgmReturn_t g_inforomValidFieldStatus;
+extern long long g_gpuRecoveryActionVal;
+extern dcgmReturn_t g_gpuRecoveryActionFieldStatus;
+extern long long g_fmStatusVal;
+extern long long g_fmErrorVal;
+extern std::string g_fmUuidStr;
+extern long long g_fmCliqueIdVal;
+extern long long g_fmHealthMaskVal;
 
 namespace
 {

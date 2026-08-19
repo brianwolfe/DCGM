@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.6
 
 # Copyright (c) 2024-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
@@ -17,11 +17,103 @@
 
 ARG ARCHITECTURE=x86_64
 
+FROM scratch AS downloads
+
+ARG CORROSION_URL
+ARG CROSSTOOL_URL
+ARG CROSSTOOL_BINUTILS_URL
+ARG CROSSTOOL_GCC_URL
+ARG CROSSTOOL_GDB_URL
+ARG CROSSTOOL_GETTEXT_URL
+ARG CROSSTOOL_GLIBC_URL
+ARG CROSSTOOL_GMP_URL
+ARG CROSSTOOL_ISL_URL
+ARG CROSSTOOL_LIBICONV_URL
+ARG CROSSTOOL_LINUX_URL
+ARG CROSSTOOL_MPC_URL
+ARG CROSSTOOL_MPFR_URL
+ARG CROSSTOOL_NCURSES_URL
+ARG CROSSTOOL_ZLIB_URL
+ARG CROSSTOOL_ZSTD_URL
+ARG RUSTC_URL
+ARG RUST_SRC_URL
+ARG RUST_STD_AARCH64_LINUX_GNU_URL
+
+ARG CORROSION_SHA256SUM
+ARG CROSSTOOL_SHA256SUM
+ARG CROSSTOOL_BINUTILS_SHA256SUM
+ARG CROSSTOOL_GCC_SHA256SUM
+ARG CROSSTOOL_GDB_SHA256SUM
+ARG CROSSTOOL_GETTEXT_SHA256SUM
+ARG CROSSTOOL_GLIBC_SHA256SUM
+ARG CROSSTOOL_GMP_SHA256SUM
+ARG CROSSTOOL_ISL_SHA256SUM
+ARG CROSSTOOL_LIBICONV_SHA256SUM
+ARG CROSSTOOL_LINUX_SHA256SUM
+ARG CROSSTOOL_MPC_SHA256SUM
+ARG CROSSTOOL_MPFR_SHA256SUM
+ARG CROSSTOOL_NCURSES_SHA256SUM
+ARG CROSSTOOL_ZLIB_SHA256SUM
+ARG CROSSTOOL_ZSTD_SHA256SUM
+ARG RUSTC_SHA256SUM
+ARG RUST_SRC_SHA256SUM
+ARG RUST_STD_AARCH64_LINUX_GNU_SHA256SUM
+
+ADD --checksum=${CORROSION_SHA256SUM}                  ${CORROSION_URL}                  /corrosion.tar.gz
+ADD --checksum=${CROSSTOOL_SHA256SUM}                  ${CROSSTOOL_URL}                  /crosstool-ng.tar.gz
+ADD --checksum=${CROSSTOOL_BINUTILS_SHA256SUM}         ${CROSSTOOL_BINUTILS_URL}         /crosstool-ng/binutils-2.42.tar.xz
+ADD --checksum=${CROSSTOOL_GCC_SHA256SUM}              ${CROSSTOOL_GCC_URL}              /crosstool-ng/gcc-14.3.0.tar.xz
+ADD --checksum=${CROSSTOOL_GDB_SHA256SUM}              ${CROSSTOOL_GDB_URL}              /crosstool-ng/gdb-14.2.tar.xz
+ADD --checksum=${CROSSTOOL_GETTEXT_SHA256SUM}          ${CROSSTOOL_GETTEXT_URL}          /crosstool-ng/gettext-0.22.5.tar.xz
+ADD --checksum=${CROSSTOOL_GLIBC_SHA256SUM}            ${CROSSTOOL_GLIBC_URL}            /crosstool-ng/glibc-2.27.tar.xz
+ADD --checksum=${CROSSTOOL_GMP_SHA256SUM}              ${CROSSTOOL_GMP_URL}              /crosstool-ng/gmp-6.2.1.tar.xz
+ADD --checksum=${CROSSTOOL_ISL_SHA256SUM}              ${CROSSTOOL_ISL_URL}              /crosstool-ng/isl-0.26.tar.xz
+ADD --checksum=${CROSSTOOL_LIBICONV_SHA256SUM}         ${CROSSTOOL_LIBICONV_URL}         /crosstool-ng/libiconv-1.16.tar.gz
+ADD --checksum=${CROSSTOOL_LINUX_SHA256SUM}            ${CROSSTOOL_LINUX_URL}            /crosstool-ng/linux-4.20.17.tar.xz
+ADD --checksum=${CROSSTOOL_MPC_SHA256SUM}              ${CROSSTOOL_MPC_URL}              /crosstool-ng/mpc-1.3.1.tar.gz
+ADD --checksum=${CROSSTOOL_MPFR_SHA256SUM}             ${CROSSTOOL_MPFR_URL}             /crosstool-ng/mpfr-4.2.2.tar.xz
+ADD --checksum=${CROSSTOOL_NCURSES_SHA256SUM}          ${CROSSTOOL_NCURSES_URL}          /crosstool-ng/ncurses-6.4.tar.gz
+ADD --checksum=${CROSSTOOL_ZLIB_SHA256SUM}             ${CROSSTOOL_ZLIB_URL}             /crosstool-ng/zlib-1.3.1.tar.xz
+ADD --checksum=${CROSSTOOL_ZSTD_SHA256SUM}             ${CROSSTOOL_ZSTD_URL}             /crosstool-ng/zstd-1.5.5.tar.gz
+ADD --checksum=${RUSTC_SHA256SUM}                      ${RUSTC_URL}                      /rust.tar.xz
+ADD --checksum=${RUST_SRC_SHA256SUM}                   ${RUST_SRC_URL}                   /rust-src.tar.xz
+ADD --checksum=${RUST_STD_AARCH64_LINUX_GNU_SHA256SUM} ${RUST_STD_AARCH64_LINUX_GNU_URL} /rust-std-aarch64-linux-gnu.tar.xz
+
+FROM scratch AS cuda-downloads
+
+ARG CUDA11_AARCH64_LINUX_GNU_URL
+ARG CUDA11_CROSS_AARCH64_LINUX_GNU_URL
+ARG CUDA11_X86_64_LINUX_GNU_URL
+ARG CUDA12_AARCH64_LINUX_GNU_URL
+ARG CUDA12_CROSS_AARCH64_LINUX_GNU_URL
+ARG CUDA12_X86_64_LINUX_GNU_URL
+ARG CUDA13_AARCH64_LINUX_GNU_URL
+ARG CUDA13_CROSS_AARCH64_LINUX_GNU_URL
+ARG CUDA13_X86_64_LINUX_GNU_URL
+
+ARG CUDA11_AARCH64_LINUX_GNU_SHA256SUM
+ARG CUDA11_CROSS_AARCH64_LINUX_GNU_SHA256SUM
+ARG CUDA11_X86_64_LINUX_GNU_SHA256SUM
+ARG CUDA12_AARCH64_LINUX_GNU_SHA256SUM
+ARG CUDA12_CROSS_AARCH64_LINUX_GNU_SHA256SUM
+ARG CUDA12_X86_64_LINUX_GNU_SHA256SUM
+ARG CUDA13_AARCH64_LINUX_GNU_SHA256SUM
+ARG CUDA13_CROSS_AARCH64_LINUX_GNU_SHA256SUM
+ARG CUDA13_X86_64_LINUX_GNU_SHA256SUM
+
+ADD --checksum=${CUDA11_AARCH64_LINUX_GNU_SHA256SUM}       ${CUDA11_AARCH64_LINUX_GNU_URL}       /cuda11-aarch64.deb
+ADD --checksum=${CUDA11_CROSS_AARCH64_LINUX_GNU_SHA256SUM} ${CUDA11_CROSS_AARCH64_LINUX_GNU_URL} /cuda11-cross-aarch64.deb
+ADD --checksum=${CUDA11_X86_64_LINUX_GNU_SHA256SUM}        ${CUDA11_X86_64_LINUX_GNU_URL}        /cuda11-x86_64.deb
+ADD --checksum=${CUDA12_AARCH64_LINUX_GNU_SHA256SUM}       ${CUDA12_AARCH64_LINUX_GNU_URL}       /cuda12-aarch64.deb
+ADD --checksum=${CUDA12_CROSS_AARCH64_LINUX_GNU_SHA256SUM} ${CUDA12_CROSS_AARCH64_LINUX_GNU_URL} /cuda12-cross-aarch64.deb
+ADD --checksum=${CUDA12_X86_64_LINUX_GNU_SHA256SUM}        ${CUDA12_X86_64_LINUX_GNU_URL}        /cuda12-x86_64.deb
+ADD --checksum=${CUDA13_AARCH64_LINUX_GNU_SHA256SUM}       ${CUDA13_AARCH64_LINUX_GNU_URL}       /cuda13-aarch64.deb
+ADD --checksum=${CUDA13_CROSS_AARCH64_LINUX_GNU_SHA256SUM} ${CUDA13_CROSS_AARCH64_LINUX_GNU_URL} /cuda13-cross-aarch64.deb
+ADD --checksum=${CUDA13_X86_64_LINUX_GNU_SHA256SUM}        ${CUDA13_X86_64_LINUX_GNU_URL}        /cuda13-x86_64.deb
+
 FROM base_image AS crosstool-ng
 
 ARG ARCHITECTURE
-ARG CROSSTOOL_SHA512SUM=45736acb5ead4e50b7565d328739108cd0200838b9d6e4437d1718ec93bc12c404a3c3780386a409a7 ebf4418c6c18844bd4bfd1ad17c9301533d5e89b1a50e2
-ARG CROSSTOOL_URL=https://github.com/crosstool-ng/crosstool-ng/archive/ed12fa68402f58e171a6f79500f73f4781fdc9e5.tar.gz
 
 RUN set -ex; \
     export DEBIAN_FRONTEND=noninteractive; \
@@ -57,27 +149,24 @@ RUN set -ex; \
 
 WORKDIR /root
 
-RUN set -ex; \
+RUN --mount=type=bind,from=downloads,source=/,target=/tmp/downloads \
+    set -ex; \
     mkdir -p crosstool-ng; \
-    wget $CROSSTOOL_URL -O crosstool-ng.tar.gz; \
-    echo "$CROSSTOOL_SHA512SUM  crosstool-ng.tar.gz" | sha512sum -c -; \
-    tar xf crosstool-ng.tar.gz -C crosstool-ng --strip-components=1; \
+    tar xf /tmp/downloads/crosstool-ng.tar.gz -C crosstool-ng --strip-components=1; \
     cd crosstool-ng; \
     ./bootstrap; \
     ./configure --prefix=/opt/crosstool-ng; \
-    make -j12; \
+    make -j "$(nproc)"; \
     make install; \
     rm -rf /root/crosstool-ng
 
-RUN useradd --create-home builder \
- && mkdir /opt/cross \
- && chown builder:builder /opt/cross
+COPY crosstool-ng/$ARCHITECTURE.config /root/$ARCHITECTURE/.config
+WORKDIR /root/$ARCHITECTURE
 
-USER builder
-COPY --chown=builder:builder crosstool-ng/$ARCHITECTURE.config /home/builder/$ARCHITECTURE/.config
-WORKDIR /home/builder/$ARCHITECTURE
-
-RUN CT_PREFIX=/opt/cross /opt/crosstool-ng/bin/ct-ng build
+RUN --mount=type=bind,from=downloads,source=/,target=/tmp/downloads \
+    set -ex; \
+    CT_PREFIX=/opt/cross /opt/crosstool-ng/bin/ct-ng build; \
+    rm -rf .build build.log
 
 FROM common-host-software
 
@@ -264,16 +353,18 @@ cpp_ld = crossroot / 'bin' / target + '-ld'
 cpp_link_args = ['-static-libstdc++'] + linker_paths
 EOF
 
-RUN --mount=type=bind,source=scripts/cuda,target=/tmp/scripts/cuda \
- set -ex \
- && /tmp/scripts/cuda/cuda.sh /tmp/scripts/cuda/urls.txt
+RUN --mount=type=bind,from=cuda-downloads,source=/,target=/tmp/downloads \
+    --mount=type=bind,source=scripts/cuda,target=/tmp/scripts/cuda \
+    set -ex; \
+    /tmp/scripts/cuda/cuda.sh
 
 ENV RUST_INSTALL_PREFIX=/usr/local
 
-RUN --mount=type=bind,source=scripts/rust,target=/tmp/scripts/rust \
+RUN --mount=type=bind,from=downloads,source=/,target=/tmp/downloads \
+    --mount=type=bind,source=scripts/rust,target=/tmp/scripts/rust \
  set -ex \
  && export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/usr/bin/clang \
- && /tmp/scripts/rust/rust.sh /tmp/scripts/rust/urls.txt \
+ && /tmp/scripts/rust/rust.sh \
  && CC=/usr/bin/clang CXX=/usr/bin/clang++ cargo install --force \
                   --locked \
                   --root=$RUST_INSTALL_PREFIX \
@@ -285,8 +376,9 @@ RUN --mount=type=bind,source=scripts/rust,target=/tmp/scripts/rust \
                   cargo-vet@0.10.2 \
                   cargo-vendor-filterer@0.5.18 \
                   bindgen-cli@0.72.1 \
+                  cargo-llvm-cov@0.8.7 \
                   bacon@3.22.0 \
  && rm -rf $HOME/.cargo \
- && /tmp/scripts/rust/corrosion.sh /tmp/scripts/rust/urls.txt
+ && /tmp/scripts/rust/corrosion.sh
 
 ENV DCGM_BUILD_INSIDE_DOCKER=1
