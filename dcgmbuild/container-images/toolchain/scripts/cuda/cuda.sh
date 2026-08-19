@@ -21,23 +21,18 @@ SYSROOT=/opt/cross/$ARCHITECTURE-linux-gnu/sysroot
 
 for CUDA in cuda11 cuda12 cuda13
 do
-    read -r _ URL SHA512SUM <<<$(grep "^$CUDA-x86_64-linux-gnu" $1)
-
-    curl --location --fail --output $CUDA-x86_64.deb --retry 5 $URL
-    echo "$SHA512SUM $CUDA-x86_64.deb" | sha512sum --check -
+    CUDA_DEB="/tmp/downloads/$CUDA-x86_64.deb"
 
     VERSION="$(
-        dpkg --field $CUDA-x86_64.deb Version \
+        dpkg --field $CUDA_DEB Version \
         | sed --regexp-extended 's/[^0-9]*([0-9]+[.][0-9]+).*/\1/')"
 
     VERSION_SUFFIX="${VERSION/./-}"
-    HOST_REPO_PACKAGE="$(dpkg --field $CUDA-x86_64.deb Package)"
+    HOST_REPO_PACKAGE="$(dpkg --field $CUDA_DEB Package)"
 
-    dpkg --install $CUDA-x86_64.deb
+    dpkg --install $CUDA_DEB
     cp /var/cuda-repo-*-$VERSION_SUFFIX-local/cuda-*-keyring.gpg /usr/share/keyrings/
     apt update
-
-    rm $CUDA-x86_64.deb
 
     if [[ $ARCHITECTURE = "x86_64" ]]
     then
@@ -146,15 +141,12 @@ do
 
         apt purge --assume-yes $HOST_REPO_PACKAGE
 
-        read -r _ URL SHA512SUM <<<$(grep "^$CUDA-cross-$ARCHITECTURE-linux-gnu" $1)
-        curl --location --fail --output $CUDA-cross.deb --retry 5 $URL
-        echo "$SHA512SUM $CUDA-cross.deb" | sha512sum --check -
+        CUDA_CROSS_DEB="/tmp/downloads/$CUDA-cross-$ARCHITECTURE.deb"
 
-        HOST_CROSS_REPO_PACKAGE="$(dpkg --field $CUDA-cross.deb Package)"
+        HOST_CROSS_REPO_PACKAGE="$(dpkg --field $CUDA_CROSS_DEB Package)"
         CROSS_SUFFIX="$(sed -E 's/cuda-repo-(cross-[^-]+)-.*/\1/' <<< $HOST_CROSS_REPO_PACKAGE)"
 
-        dpkg --install $CUDA-cross.deb
-        rm $CUDA-cross.deb
+        dpkg --install $CUDA_CROSS_DEB
 
         cp /var/cuda-repo-cross-*-$VERSION_SUFFIX-local/cuda-*-keyring.gpg /usr/share/keyrings/
         apt update
@@ -201,15 +193,13 @@ do
 
         apt purge --assume-yes $HOST_CROSS_REPO_PACKAGE
 
-        read -r _ URL SHA512SUM <<<$(grep "^$CUDA-$ARCHITECTURE-linux-gnu" $1)
-        curl --location --fail --output $CUDA-target.deb --retry 5 $URL
-        echo "$SHA512SUM $CUDA-target.deb" | sha512sum --check -
+        CUDA_TARGET_DEB="/tmp/downloads/$CUDA-$ARCHITECTURE.deb"
 
-        TARGET_REPO_PACKAGE="$(dpkg --field $CUDA-target.deb Package)"
-        DEB_ARCHITECTURE="$(dpkg --field $CUDA-target.deb Architecture)"
+        TARGET_REPO_PACKAGE="$(dpkg --field $CUDA_TARGET_DEB Package)"
+        DEB_ARCHITECTURE="$(dpkg --field $CUDA_TARGET_DEB Architecture)"
 
         dpkg --add-architecture $DEB_ARCHITECTURE
-        dpkg --install $CUDA-target.deb
+        dpkg --install $CUDA_TARGET_DEB
         cp /var/cuda-repo-*-$VERSION_SUFFIX-local/cuda-*-keyring.gpg /usr/share/keyrings/
 
         CODENAME=$(source /etc/os-release; echo $VERSION_CODENAME)
@@ -237,8 +227,6 @@ Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 EOF
 
         apt update
-
-        rm $CUDA-target.deb
 
         while IFS= read -r PACKAGE_NAME
         do

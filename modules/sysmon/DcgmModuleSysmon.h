@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,6 +110,13 @@ public:
 #ifndef DCGM_SYSMON_TEST // Allow sysmon tests to peek in
 private:
 #endif
+    enum class TaskRunnerStartMode
+    {
+        Start,
+        Defer,
+    };
+
+    DcgmModuleSysmon(dcgmCoreCallbacks_t &dcc, TaskRunnerStartMode startMode);
 
     using GetCpusMessage = DcgmNs::MessageGuard<dcgm_sysmon_msg_get_cpus_t, dcgm_sysmon_msg_get_cpus_version>;
     using WatchFieldsMessage
@@ -149,6 +156,9 @@ private:
     std::unique_ptr<HangDetectHandler> m_handler { nullptr };
 
     /*************************************************************************/
+    void Initialize(TaskRunnerStartMode startMode);
+    void StartTaskRunner();
+    void StopTaskRunner() noexcept;
     dcgmReturn_t ProcessGetCpus(GetCpusMessage msg);
     dcgmReturn_t ProcessGetEntityStatus(GetEntityStatusMessage msg);
     dcgmReturn_t ProcessWatchFields(WatchFieldsMessage msg);

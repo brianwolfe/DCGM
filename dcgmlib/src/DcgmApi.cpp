@@ -47,6 +47,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <iterator>
+#include <system_error>
 #include <type_traits>
 #include <unistd.h>
 
@@ -2440,14 +2441,14 @@ static dcgmReturn_t helperGetFieldValuesSince(dcgmHandle_t pDcgmHandle,
 
             retNumFieldValues = valuesAtATime;
             dcgmSt            = helperGetMultipleValuesForFieldFvBuffer(pDcgmHandle,
-                                                             DCGM_FE_GPU,
-                                                             gpuId,
-                                                             fieldId,
-                                                             &retNumFieldValues,
-                                                             sinceTimestamp,
-                                                             endQueryTimestamp,
-                                                             DCGM_ORDER_ASCENDING,
-                                                             &fvBuffer);
+                                                                        DCGM_FE_GPU,
+                                                                        gpuId,
+                                                                        fieldId,
+                                                                        &retNumFieldValues,
+                                                                        sinceTimestamp,
+                                                                        endQueryTimestamp,
+                                                                        DCGM_ORDER_ASCENDING,
+                                                                        &fvBuffer);
             if (dcgmSt == DCGM_ST_NO_DATA)
             {
                 log_debug("DCGM_ST_NO_DATA for gpuId {}, fieldId {}, sinceTs {}", gpuId, fieldId, sinceTimestamp);
@@ -2582,14 +2583,14 @@ static dcgmReturn_t helperGetValuesSince(dcgmHandle_t pDcgmHandle,
                nextSinceTimestamp we're returning to the client */
             retNumFieldValues = valuesAtATime;
             dcgmSt            = helperGetMultipleValuesForFieldFvBuffer(pDcgmHandle,
-                                                             groupInfo->entityList[i].entityGroupId,
-                                                             groupInfo->entityList[i].entityId,
-                                                             fieldId,
-                                                             &retNumFieldValues,
-                                                             sinceTimestamp,
-                                                             endQueryTimestamp,
-                                                             DCGM_ORDER_ASCENDING,
-                                                             &fvBuffer);
+                                                                        groupInfo->entityList[i].entityGroupId,
+                                                                        groupInfo->entityList[i].entityId,
+                                                                        fieldId,
+                                                                        &retNumFieldValues,
+                                                                        sinceTimestamp,
+                                                                        endQueryTimestamp,
+                                                                        DCGM_ORDER_ASCENDING,
+                                                                        &fvBuffer);
             if (dcgmSt == DCGM_ST_NO_DATA)
             {
                 log_debug("DCGM_ST_NO_DATA for eg {}, eid {}, fieldId {}, sinceTs {}",
@@ -5934,11 +5935,12 @@ dcgmReturn_t StartEmbeddedV2(dcgmStartEmbeddedV2Params_v1 &params)
     {
         if (chdir(homeDir))
         {
-            char errbuf[1024];
-            strerror_r(errno, errbuf, sizeof(errbuf));
-
+            auto const chdirErrno = errno;
             std::string cwd(std::filesystem::current_path());
-            homeDirMsg = fmt::format("Couldn't change to directory '{}' from '{}': {}.", homeDir, cwd, errbuf);
+            homeDirMsg = fmt::format("Couldn't change to directory '{}' from '{}': {}.",
+                                     homeDir,
+                                     cwd,
+                                     std::error_code(chdirErrno, std::generic_category()).message());
             chdirFail  = true;
         }
     }

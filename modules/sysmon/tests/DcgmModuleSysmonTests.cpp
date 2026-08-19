@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ int UnsetTestEnv()
     DcgmLockGuard lock(&envMutex);
     return unsetenv("DCGM_SUPPORT_NON_NVIDIA_CPU");
 }
+
 } //namespace
 
 // The implementation depends structures based on these defines and indexes structures
@@ -142,50 +143,6 @@ TEST_CASE("DcgmModuleSysmon::PopulateOwnedCoresBitmaskFromRangeString")
     }
 }
 
-TEST_CASE("DcgmModuleSysmon::ParseProcStatCpuLine")
-{
-    REQUIRE_FALSE(SetTestEnv());
-
-    DcgmModuleSysmon sysmon(g_coreCallbacks);
-    sysmon.m_cpus.AddFakeCpu(); // Make sure 0 is a valid CPU
-
-    SysmonUtilizationSample sample = {};
-    // Not enough room
-    CHECK(sysmon.ParseProcStatCpuLine("cpu0 75 5 6 25", sample) == DCGM_ST_BADPARAM);
-
-    sample.m_cores.resize(12);
-
-    CHECK(sysmon.ParseProcStatCpuLine("cpu0 bad line", sample) == DCGM_ST_BADPARAM);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu0 bad line with enough tokens for checking", sample) == DCGM_ST_BADPARAM);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu0 75 5 6 bad", sample) == DCGM_ST_BADPARAM);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu0 badusertime 5 6 76", sample) == DCGM_ST_BADPARAM);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu0 75 5 6 25 0 8", sample) == DCGM_ST_OK);
-    CHECK(sample.m_cores[0].m_user == 75);
-    CHECK(sample.m_cores[0].m_nice == 5);
-    CHECK(sample.m_cores[0].m_system == 6);
-    CHECK(sample.m_cores[0].m_idle == 25);
-    CHECK(sample.m_cores[0].m_irq == 8);
-
-    // Some lines from my system should pass
-    CHECK(sysmon.ParseProcStatCpuLine("cpu0 9733046 9991 2371910 659811695 177306 0 8925 0 0 0", sample) == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu1 9772560 8585 2085158 660512731 161268 0 2882 0 0 0", sample) == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu2 11007090 10098 2076304 659320474 148554 0 1324 0 0 0", sample)
-          == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu3 11113132 10638 2004824 659242757 134281 0 797 0 0 0", sample)
-          == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu4 8031834 7531 2880138 660798436 113679 0 583 0 0 0", sample) == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu5 9078527 7740 2196453 660871019 132242 0 460 0 0 0", sample) == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu6 9460076 7303 2144416 660593573 108288 0 469 0 0 0", sample) == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu7 8886171 5701 2491062 660719039 107810 0 540 0 0 0", sample) == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu8 9981141 8746 2026270 660452649 104743 0 514 0 0 0", sample) == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu9 9197158 8551 2146646 661044381 102656 0 375 0 0 0", sample) == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu10 8317451 9040 1924201 661743503 425237 0 23118 0 0 0", sample)
-          == DCGM_ST_OK);
-    CHECK(sysmon.ParseProcStatCpuLine("cpu11 8233975 7082 2741281 660626374 273765 0 78044 0 0 0", sample)
-          == DCGM_ST_OK);
-    REQUIRE_FALSE(UnsetTestEnv());
-}
-
 TEST_CASE("DcgmModuleSysmon::ParseThermalFileContentsAndStore")
 {
     REQUIRE_FALSE(SetTestEnv());
@@ -276,8 +233,6 @@ TEST_CASE("DcgmModuleSysmon maxSampleAge")
     using namespace DcgmNs::Timelib;
     REQUIRE_FALSE(SetTestEnv());
     DcgmModuleSysmon sysmon(g_coreCallbacks);
-
-    sysmon.m_cpus.AddFakeCpu(); // Make sure 0 is a valid CPU
 
     DcgmWatcher watcher(DcgmWatcherTypeClient, 1);
 

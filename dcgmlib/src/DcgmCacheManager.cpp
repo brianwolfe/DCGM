@@ -1969,6 +1969,13 @@ dcgm_field_eid_t DcgmCacheManager::AddFakeInstance(dcgm_field_eid_t parentId)
         return entityId;
     }
 
+    if (m_gpus[parentId].instances.size() >= DCGM_MAX_INSTANCES_PER_GPU)
+    {
+        log_error(
+            "Could not add another instance to GPU {}. Already at limit of {}", parentId, DCGM_MAX_INSTANCES_PER_GPU);
+        return entityId;
+    }
+
     entityId = parentId * DCGM_MAX_INSTANCES_PER_GPU + m_gpus[parentId].instances.size();
     log_info("DcgmCacheManager::AddFakeInstance {} {}", parentId, entityId);
     unsigned int nvmlInstanceId = m_gpus[parentId].instances.size();
@@ -1986,6 +1993,7 @@ dcgm_field_eid_t DcgmCacheManager::AddFakeInstance(dcgm_field_eid_t parentId)
     m_gpus[parentId].migEnabled = true;
     m_gpus[parentId].usedGpcs += 1;
     m_gpus[parentId].maxGpcs = DCGM_MAX_INSTANCES_PER_GPU;
+    m_numInstances++;
 
     return entityId;
 }
@@ -2031,7 +2039,7 @@ dcgm_field_eid_t DcgmCacheManager::AddFakeComputeInstance(dcgm_field_eid_t paren
                  * slice count, but we don't do that anywhere else, so we just
                  * compare to GPU limits.
                  */
-                if ((DCGM_MAX_COMPUTE_INSTANCES_PER_GPU - m_gpus[gpuIndex].ciCount) < 1)
+                if (m_gpus[gpuIndex].ciCount >= DCGM_MAX_COMPUTE_INSTANCES_PER_GPU)
                 {
                     DCGM_LOG_ERROR << "Unable to add compute instances to gpuId " << gpuIndex << " that has "
                                    << m_gpus[gpuIndex].ciCount << " compute instances. "
@@ -3847,8 +3855,8 @@ dcgmReturn_t DcgmCacheManager::AddGlobalFieldWatch(unsigned short dcgmFieldId,
         newWatcher.monitorIntervalUsec = monitorIntervalUsec;
 
         newWatcher.maxAgeUsec   = ToLegacyTimestamp(GetMaxAge(FromLegacyTimestamp<milliseconds>(monitorIntervalUsec),
-                                                            seconds(std::uint64_t(maxSampleAge)),
-                                                            maxKeepSamples));
+                                                              seconds(std::uint64_t(maxSampleAge)),
+                                                              maxKeepSamples));
         newWatcher.isSubscribed = subscribeForUpdates;
 
         /* New watch? */

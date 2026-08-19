@@ -31,6 +31,7 @@ set(SRCS
     DcgmGpuInstance.cpp
     DcgmCoreCommunication.cpp
     DcgmMigManager.cpp
+    DcgmModuleCommandValidation.cpp
     DcgmProfiles.cpp
     DcgmTopology.cpp
     DcgmGpmManager.cpp

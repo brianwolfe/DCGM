@@ -63,9 +63,9 @@ public:
     Pipe()
     {
         std::array<int, 2> fds { -1, -1 };
-        (void)pipe(fds.data());
-        m_readFd  = fds[0];
-        m_writeFd = fds[1];
+        [[maybe_unused]] int const pipeResult = pipe(fds.data());
+        m_readFd                              = fds[0];
+        m_writeFd                             = fds[1];
     }
 
     /**

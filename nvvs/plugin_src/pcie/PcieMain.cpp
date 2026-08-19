@@ -39,6 +39,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <system_error>
 #include <unistd.h>
 #include <vector>
 
@@ -604,9 +605,11 @@ dcgmReturn_t HarvestChildren(BusGrind &bg, std::vector<dcgmChildInfo_t> &childre
         int childStatus;
         if (waitpid(childInfo.pid, &childStatus, 0) == -1)
         {
+            auto const waitErrno = errno;
             DcgmError d { DcgmError::GpuIdTag::Unknown };
-            std::string err = fmt::format(
-                "Error while waiting for child process ({}) to exit: '{}'", childInfo.pid, strerror(errno));
+            std::string err = fmt::format("Error while waiting for child process ({}) to exit: '{}'",
+                                          childInfo.pid,
+                                          std::error_code(waitErrno, std::generic_category()).message());
             DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_INTERNAL, d, err.c_str());
             bg.AddError(bg.GetPcieTestName(), d);
             errorCondition = true;
@@ -816,22 +819,22 @@ unsigned int ProcessChildrenOutputs(std::vector<dcgmChildInfo_t> &childrenInfo,
             {
                 if (childInfo.readOutputRet != 0)
                 {
-                    char errbuf[1024] = { 0 };
-                    strerror_r(childInfo.readOutputRet, errbuf, sizeof(errbuf));
                     DcgmError d { DcgmError::GpuIdTag::Unknown };
                     std::string errmsg
-                        = fmt::format("Output of child process ({}) couldn't be read: '{}'", childInfo.pid, errbuf);
+                        = fmt::format("Output of child process ({}) couldn't be read: '{}'",
+                                      childInfo.pid,
+                                      std::error_code(childInfo.readOutputRet, std::generic_category()).message());
                     DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_INTERNAL, d, errmsg.c_str());
                     bg.AddError(bg.GetPcieTestName(), d);
                 }
 
                 if (childInfo.readErrorRet != 0)
                 {
-                    char errbuf[1024] = { 0 };
-                    strerror_r(childInfo.readErrorRet, errbuf, sizeof(errbuf));
                     DcgmError d { DcgmError::GpuIdTag::Unknown };
                     std::string errmsg
-                        = fmt::format("Stderr of child process ({}) couldn't be read: '{}'", childInfo.pid, errbuf);
+                        = fmt::format("Stderr of child process ({}) couldn't be read: '{}'",
+                                      childInfo.pid,
+                                      std::error_code(childInfo.readErrorRet, std::generic_category()).message());
                     DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_INTERNAL, d, errmsg.c_str());
                     bg.AddError(bg.GetPcieTestName(), d);
                 }
@@ -1097,9 +1100,11 @@ int ForkAndLaunchBandwidthTests(BusGrind &bg,
 
         if (childPid < 0)
         {
+            auto const forkErrno = errno;
             // Failure - Couldn't launch the child process
             DcgmError d { DcgmError::GpuIdTag::Unknown };
-            std::string err = fmt::format("Couldn't fork to launch bandwidth measurement test: '{}'", strerror(errno));
+            std::string err = fmt::format("Couldn't fork to launch bandwidth measurement test: '{}'",
+                                          std::error_code(forkErrno, std::generic_category()).message());
             DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_INTERNAL, d, err.c_str());
             bg.AddError(bg.GetPcieTestName(), d);
             failedTests++;

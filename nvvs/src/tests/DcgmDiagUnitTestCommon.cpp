@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,6 +76,5 @@ int NvvsTests::createTmpDir()
 int NvvsTests::deleteTmpDir()
 {
     std::string cmd = std::string("rm -rf ") + ourTempDir;
-    system(cmd.c_str());
-    return 0;
+    return system(cmd.c_str()) == 0 ? 0 : 1;
 }

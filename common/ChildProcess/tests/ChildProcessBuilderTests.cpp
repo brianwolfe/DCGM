@@ -32,10 +32,10 @@ TEST_CASE("ChildProcess can read stdout from StdLines")
 {
     auto ioContext = IoContext();
     auto process   = ChildProcessBuilder {}
-                       .SetExecutable("./childprocesstesttool")
-                       .AddArg("stdout")
-                       .AddArg("Hello, World!")
-                       .Build(ioContext);
+                         .SetExecutable("./childprocesstesttool")
+                         .AddArg("stdout")
+                         .AddArg("Hello, World!")
+                         .Build(ioContext);
     process.Run();
 
     auto &stdOutLines     = process.StdOut();
@@ -51,10 +51,10 @@ TEST_CASE("ChildProcess can read stderr from StdLines")
 {
     auto ioContext = IoContext();
     auto process   = ChildProcessBuilder {}
-                       .SetExecutable("./childprocesstesttool")
-                       .AddArg("stderr")
-                       .AddArg("Capoo")
-                       .Build(ioContext);
+                         .SetExecutable("./childprocesstesttool")
+                         .AddArg("stderr")
+                         .AddArg("Capoo")
+                         .Build(ioContext);
     process.Run();
 
     auto &stdErrLines     = process.StdErr();
@@ -93,12 +93,12 @@ TEST_CASE("ChildProcess can read from the channel file descriptor, when process 
 {
     auto ioContext = IoContext();
     auto process   = ChildProcessBuilder {}
-                       .SetExecutable("./childprocesstesttool")
-                       .SetChannelFd(6)
-                       .AddArg("fd-channel")
-                       .AddArg("6")
-                       .AddArg("Capoo")
-                       .Build(ioContext);
+                         .SetExecutable("./childprocesstesttool")
+                         .SetChannelFd(6)
+                         .AddArg("fd-channel")
+                         .AddArg("6")
+                         .AddArg("Capoo")
+                         .Build(ioContext);
     process.Run();
 
     auto channel = process.GetFdChannel();
@@ -123,12 +123,12 @@ TEST_CASE("ChildProcess does not block on file descriptors, when process errors"
 {
     auto ioContext = IoContext();
     auto process   = ChildProcessBuilder {}
-                       .SetExecutable("./childprocesstesttool")
-                       .SetChannelFd(6)
-                       .AddArg("fd-channel")
-                       .AddArg("13")
-                       .AddArg("Capoo")
-                       .Build(ioContext);
+                         .SetExecutable("./childprocesstesttool")
+                         .SetChannelFd(6)
+                         .AddArg("fd-channel")
+                         .AddArg("13")
+                         .AddArg("Capoo")
+                         .Build(ioContext);
     process.Run();
     // Verify that the following do not block
     process.Wait();
@@ -150,12 +150,12 @@ TEST_CASE("ChildProcess does not block on file descriptors, when invalid channel
 {
     auto ioContext = IoContext();
     auto process   = ChildProcessBuilder {}
-                       .SetExecutable("./childprocesstesttool")
-                       .SetChannelFd(-1)
-                       .AddArg("fd-channel")
-                       .AddArg("-1")
-                       .AddArg("Capoo")
-                       .Build(ioContext);
+                         .SetExecutable("./childprocesstesttool")
+                         .SetChannelFd(-1)
+                         .AddArg("fd-channel")
+                         .AddArg("-1")
+                         .AddArg("Capoo")
+                         .Build(ioContext);
     process.Run();
     // Verify that the following do not block
     process.Wait();
@@ -240,10 +240,10 @@ TEST_CASE("ChildProcess GetStdErrBuffer blocks on stderr reads when indicated - 
 {
     auto ioContext = IoContext();
     auto process   = ChildProcessBuilder {}
-                       .SetExecutable("./childprocesstesttool")
-                       .AddArg("stderr")
-                       .AddArg("Capoo")
-                       .Build(ioContext);
+                         .SetExecutable("./childprocesstesttool")
+                         .AddArg("stderr")
+                         .AddArg("Capoo")
+                         .Build(ioContext);
     process.Run();
 
     fmt::memory_buffer errBuf;
@@ -324,10 +324,10 @@ TEST_CASE("ChildProcess GetStdErrBuffer can read error after process ends")
 {
     auto ioContext = IoContext();
     auto proc      = ChildProcessBuilder {}
-                    .SetExecutable("./childprocesstesttool")
-                    .AddArg("stderr")
-                    .AddArg("Capoo")
-                    .Build(ioContext);
+                         .SetExecutable("./childprocesstesttool")
+                         .AddArg("stderr")
+                         .AddArg("Capoo")
+                         .Build(ioContext);
     proc.Run();
     proc.Wait();
     REQUIRE(!proc.IsAlive());
@@ -411,10 +411,10 @@ TEST_CASE("Multithreaded - Multiple child processes created and run at the same 
                     startThreadLatch.arrive_and_wait();
                     std::string errorText = fmt::format("Thread{}", threadNum);
                     auto process          = ChildProcessBuilder {}
-                                       .SetExecutable("./childprocesstesttool")
-                                       .AddArg("delayedStderr")
-                                       .AddArg(errorText)
-                                       .Build(ioContext);
+                                                .SetExecutable("./childprocesstesttool")
+                                                .AddArg("delayedStderr")
+                                                .AddArg(errorText)
+                                                .Build(ioContext);
                     process.Run();
                     process.Wait();
 

@@ -18,20 +18,128 @@
 #include "DcgmIpc.h"
 #include <DcgmLogging.h>
 #include <DcgmVariantHelper.hpp>
+#include <Defer.hpp>
 #include <HangDetectMonitor.h>
 #include <arpa/inet.h>
+#include <cstring>
 #include <event2/dns.h>
 #include <event2/thread.h>
 #include <linux/vm_sockets.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <optional>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <vector>
 
 /*****************************************************************************/
 /* The previous IPC library had serious threading issues. Adding this macro
    to validate that we're indeed in the correct thread */
 #define ASSERT_IS_IPC_THREAD assert(pthread_equal(pthread_self(), m_ipcThreadId))
+
+namespace DcgmNs::Ipc::detail
+{
+int GetConnectAddressFamilyHint(std::string const &hostname)
+{
+    in_addr ipv4Addr {};
+    in6_addr ipv6Addr {};
+    if (inet_pton(AF_INET, hostname.c_str(), &ipv4Addr) == 1)
+    {
+        return AF_INET;
+    }
+
+    if (inet_pton(AF_INET6, hostname.c_str(), &ipv6Addr) == 1)
+    {
+        return AF_INET6;
+    }
+
+    return AF_UNSPEC;
+}
+
+dcgmReturn_t ResolveTcpConnectCandidates(std::string const &hostname,
+                                         int port,
+                                         std::vector<ConnectCandidate> &candidates)
+{
+    candidates.clear();
+
+    addrinfo hints {};
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    /* For numeric literals, pin the family and skip name resolution. For DNS names, let the
+       resolver return every family it has a configured local address for (AI_ADDRCONFIG), so
+       an IPv6-only name yields AAAA records instead of failing as it would under a forced AF_INET. */
+    int const familyHint = GetConnectAddressFamilyHint(hostname);
+    hints.ai_family      = familyHint;
+    if (familyHint == AF_UNSPEC)
+    {
+        hints.ai_flags = AI_ADDRCONFIG;
+    }
+    else
+    {
+        hints.ai_flags = AI_NUMERICHOST;
+    }
+
+    std::string const portStr = std::to_string(port);
+
+    addrinfo *result = nullptr;
+    int const gaiRet = getaddrinfo(hostname.c_str(), portStr.c_str(), &hints, &result);
+    if (gaiRet != 0)
+    {
+        log_error("getaddrinfo failed for \"{}\": {}", hostname, gai_strerror(gaiRet));
+        return DCGM_ST_CONNECTION_NOT_VALID;
+    }
+
+    auto cleanupResult = DcgmNs::Defer([&result] {
+        freeaddrinfo(result);
+        result = nullptr;
+    });
+
+    static_assert(sizeof(ConnectCandidate::addr) >= sizeof(sockaddr_storage),
+                  "addr must be large enough to hold any resolved address");
+
+    for (addrinfo *ai = result; ai != nullptr; ai = ai->ai_next)
+    {
+        if (ai->ai_addr == nullptr || ai->ai_addrlen == 0 || ai->ai_addrlen > sizeof(sockaddr_storage))
+        {
+            continue;
+        }
+        ConnectCandidate candidate {};
+        std::memcpy(&candidate.addr, ai->ai_addr, ai->ai_addrlen);
+        candidate.addrLen = ai->ai_addrlen;
+        candidates.push_back(candidate);
+    }
+
+
+    if (candidates.empty())
+    {
+        log_error("No usable addresses resolved for \"{}\"", hostname);
+        return DCGM_ST_CONNECTION_NOT_VALID;
+    }
+
+    return DCGM_ST_OK;
+}
+
+std::vector<ConnectCandidate> SelectFamilyFallbackCandidates(std::vector<ConnectCandidate> const &resolved)
+{
+    std::vector<ConnectCandidate> ordered;
+
+    /* IPv4 first (legacy preference), then IPv6, taking at most one address of each family. */
+    for (int const family : { AF_INET, AF_INET6 })
+    {
+        for (auto const &candidate : resolved)
+        {
+            if (candidate.addr.ss_family == family)
+            {
+                ordered.push_back(candidate);
+                break;
+            }
+        }
+    }
+
+    return ordered;
+}
+} //namespace DcgmNs::Ipc::detail
 
 /*****************************************************************************/
 DcgmIpc::DcgmIpc(int numWorkerThreads, HangDetectMonitor *monitor)
@@ -649,6 +757,7 @@ dcgmReturn_t DcgmIpc::AddConnection(struct bufferevent *bev,
     if (bev == nullptr || connectionId == DCGM_CONNECTION_ID_NONE)
     {
         DCGM_LOG_ERROR << "Bad parameter";
+        connectPromise.set_value(DCGM_ST_BADPARAM);
         return DCGM_ST_BADPARAM;
     }
 
@@ -747,6 +856,30 @@ void DcgmIpc::ConnectTcpAsyncImpl(DcgmIpcConnectTcp &tcpConnect)
     /* TCP/IP */
     DCGM_LOG_DEBUG << "Client trying to connect to " << tcpConnect.m_hostname << ":" << tcpConnect.m_port;
 
+    std::string &hostname = tcpConnect.m_hostname;
+    // Remove brackets from IPv6 address if present
+    if (hostname.size() >= 3 && hostname[0] == '[' && hostname[hostname.size() - 1] == ']')
+    {
+        hostname = hostname.substr(1, hostname.size() - 2);
+    }
+
+    /* Resolve up front so we can fall back across address families ourselves. libevent's
+       bufferevent_socket_connect_hostname() only tries the first resolved address, which fails
+       for an IPv6-only name (forced AF_INET) or a dual-stack name whose only listener is on the
+       other family. We then apply an IPv4-first family-fallback order: this keeps the historical
+       preference (so a dual-stack name still reaches an IPv4-only listener first, no regression)
+       while still allowing a single fallback to IPv6. */
+    std::vector<DcgmNs::Ipc::detail::ConnectCandidate> candidates;
+    dcgmReturn_t dcgmReturn = DcgmNs::Ipc::detail::ResolveTcpConnectCandidates(hostname, tcpConnect.m_port, candidates);
+    if (dcgmReturn != DCGM_ST_OK)
+    {
+        log_error("Failed to resolve Host engine address \"{}\"", hostname);
+        tcpConnect.m_promise.set_value(DCGM_ST_CONNECTION_NOT_VALID);
+        return;
+    }
+
+    candidates = DcgmNs::Ipc::detail::SelectFamilyFallbackCandidates(candidates);
+
     struct bufferevent *bev = bufferevent_socket_new(m_eventBase, -1, BEV_OPT_CLOSE_ON_FREE);
     if (bev == nullptr)
     {
@@ -756,38 +889,44 @@ void DcgmIpc::ConnectTcpAsyncImpl(DcgmIpcConnectTcp &tcpConnect)
     }
 
     /* Add a tracked connection and remove our pending status */
-    dcgmReturn_t dcgmReturn
-        = AddConnection(bev, tcpConnect.m_connectionId, DCGM_IPC_CS_PENDING, std::move(tcpConnect.m_promise));
+    dcgmReturn = AddConnection(bev, tcpConnect.m_connectionId, DCGM_IPC_CS_PENDING, std::move(tcpConnect.m_promise));
     if (dcgmReturn != DCGM_ST_OK)
     {
         DCGM_LOG_ERROR << "Failed to AddConnection";
         bufferevent_free(bev);
-        tcpConnect.m_promise.set_value(DCGM_ST_GENERIC_ERROR);
+        /* Promise fulfilled by AddConnection */
         return;
     }
 
     /* Track our event before callbacks could be invoked */
-    bufferevent_setcb(bev, DcgmIpc::StaticReadCB, NULL, DcgmIpc::StaticEventCB, this);
+    bufferevent_setcb(bev, DcgmIpc::StaticReadCB, nullptr, DcgmIpc::StaticEventCB, this);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 
-    /* Allow IPv6 IPs to override family */
-    sa_family_t family    = AF_INET;
-    std::string &hostname = tcpConnect.m_hostname;
-    if (hostname.size() >= 3 && hostname[0] == '[' && hostname[hostname.size() - 1] == ']')
+    DcgmIpcConnection *connection = ConnectionIdToPtr(tcpConnect.m_connectionId);
+    if (connection == nullptr)
     {
-        hostname = hostname.substr(1, hostname.size() - 2);
-    }
-    char buf[16];
-    memset(buf, 0, sizeof(buf));
-    if (inet_pton(AF_INET6, hostname.c_str(), buf) > 0)
-    {
-        family = AF_INET6;
-    }
-
-    int ret = bufferevent_socket_connect_hostname(bev, m_dnsBase, family, hostname.c_str(), tcpConnect.m_port);
-    if (0 != ret)
-    {
+        /* Should not happen: we just added it. RemoveConnectionByBev resolves the promise. */
+        log_error("connectionId {} vanished after AddConnection", tcpConnect.m_connectionId);
         RemoveConnectionByBev(bev);
+        return;
+    }
+    connection->SetConnectCandidates(std::move(candidates));
+
+    if (TcpConnectToNextCandidate(bev, *connection) != DCGM_ST_OK)
+    {
+        if (connection->HasNextConnectCandidate())
+        {
+            if (RetryWithFreshBev(bev, tcpConnect.m_connectionId, *connection) == DCGM_ST_OK)
+            {
+                log_debug("connectionId {} retrying on next resolved address after sync connect failure",
+                          tcpConnect.m_connectionId);
+                return;
+            }
+        }
+        else
+        {
+            RemoveConnectionByBev(bev);
+        }
         DCGM_LOG_ERROR << "Failed to connect to Host engine running at IP " << tcpConnect.m_hostname << " port "
                        << tcpConnect.m_port;
         return;
@@ -796,6 +935,59 @@ void DcgmIpc::ConnectTcpAsyncImpl(DcgmIpcConnectTcp &tcpConnect)
     DCGM_LOG_DEBUG << "connectionId " << tcpConnect.m_connectionId << " connection in progress to "
                    << tcpConnect.m_hostname << " port " << tcpConnect.m_port;
     return;
+}
+
+/*****************************************************************************/
+dcgmReturn_t DcgmIpc::TcpConnectToNextCandidate(struct bufferevent *bev, DcgmIpcConnection &connection)
+{
+    ASSERT_IS_IPC_THREAD;
+
+    auto candidate = connection.TakeNextConnectCandidate();
+    if (!candidate)
+    {
+        return DCGM_ST_CONNECTION_NOT_VALID;
+    }
+
+    int const ret = bufferevent_socket_connect(
+        bev, reinterpret_cast<sockaddr const *>(&candidate->addr), static_cast<int>(candidate->addrLen));
+    if (ret != 0)
+    {
+        return DCGM_ST_CONNECTION_NOT_VALID;
+    }
+
+    return DCGM_ST_OK;
+}
+
+/*****************************************************************************/
+dcgmReturn_t DcgmIpc::RetryWithFreshBev(struct bufferevent *bev,
+                                        dcgm_connection_id_t connectionId,
+                                        DcgmIpcConnection &connection)
+{
+    ASSERT_IS_IPC_THREAD;
+
+    struct bufferevent *newBev = bufferevent_socket_new(m_eventBase, -1, BEV_OPT_CLOSE_ON_FREE);
+    if (newBev == nullptr)
+    {
+        RemoveConnectionByBev(bev);
+        return DCGM_ST_GENERIC_ERROR;
+    }
+
+    auto cleanupNewBev = DcgmNs::Defer([&] { RemoveConnectionByBev(newBev); });
+
+    bufferevent_setcb(newBev, DcgmIpc::StaticReadCB, nullptr, DcgmIpc::StaticEventCB, this);
+    bufferevent_enable(newBev, EV_READ | EV_WRITE);
+
+    m_bevToConnectionId.erase(bev);
+    connection.ReplaceBev(newBev);
+    m_bevToConnectionId[newBev] = connectionId;
+
+    if (TcpConnectToNextCandidate(newBev, connection) == DCGM_ST_OK)
+    {
+        cleanupNewBev.Disarm();
+        return DCGM_ST_OK;
+    }
+
+    return DCGM_ST_CONNECTION_NOT_VALID;
 }
 
 /*****************************************************************************/
@@ -1151,6 +1343,21 @@ void DcgmIpc::EventCB(struct bufferevent *bev, short events)
     {
         DCGM_LOG_DEBUG << "Got connection error for bev " << bev << " connectionId " << connectionId << " events "
                        << std::hex << events;
+
+        /* If we are still establishing and have more resolved addresses to try, fall back to the
+           next one on a fresh socket rather than failing. This keeps m_connectPromise unresolved
+           and avoids notifying the parent of a disconnect for a connection that never came up. */
+        DcgmIpcConnection *connection = ConnectionIdToPtr(connectionId);
+        if (connection != nullptr && connection->IsPending() && connection->HasNextConnectCandidate())
+        {
+            if (RetryWithFreshBev(bev, connectionId, *connection) == DCGM_ST_OK)
+            {
+                log_debug("Retrying connectionId {} on next resolved address", connectionId);
+            }
+            /* RetryWithFreshBev owns cleanup in all paths — bev is no longer valid here. */
+            return;
+        }
+
         RemoveConnectionByBev(bev);
     }
 }
@@ -1303,13 +1510,55 @@ DcgmIpcConnection::~DcgmIpcConnection()
     /* Set this connection to closed, possibly triggering the m_connectPromise-linked future */
     SetConnectionState(DCGM_IPC_CS_CLOSED);
 
+    FreeCurrentBev("bufferevent_free");
+}
+
+/*****************************************************************************/
+bool DcgmIpcConnection::IsPending() const
+{
+    return m_connectionState == DCGM_IPC_CS_PENDING;
+}
+
+/*****************************************************************************/
+void DcgmIpcConnection::SetConnectCandidates(std::vector<DcgmNs::Ipc::detail::ConnectCandidate> candidates)
+{
+    m_connectCandidates    = std::move(candidates);
+    m_nextConnectCandidate = 0;
+}
+
+/*****************************************************************************/
+bool DcgmIpcConnection::HasNextConnectCandidate() const
+{
+    return m_nextConnectCandidate < m_connectCandidates.size();
+}
+
+/*****************************************************************************/
+std::optional<DcgmNs::Ipc::detail::ConnectCandidate> DcgmIpcConnection::TakeNextConnectCandidate()
+{
+    if (m_nextConnectCandidate >= m_connectCandidates.size())
+    {
+        return std::nullopt;
+    }
+    return m_connectCandidates[m_nextConnectCandidate++];
+}
+
+/*****************************************************************************/
+void DcgmIpcConnection::ReplaceBev(struct bufferevent *newBev)
+{
+    FreeCurrentBev("ReplaceBev freeing old bev");
+    m_bev = newBev;
+}
+
+/*****************************************************************************/
+void DcgmIpcConnection::FreeCurrentBev(char const *logPrefix)
+{
     if (auto bev = m_bev; bev != nullptr)
     {
-        m_bev = nullptr;
+        m_bev = nullptr; /* clear before free so any re-entrant callback sees nullptr, not a freed pointer */
         bufferevent_setcb(bev, nullptr, nullptr, nullptr, nullptr);
         bufferevent_disable(bev, EV_READ | EV_WRITE);
 
-        DCGM_LOG_DEBUG << "bufferevent_free " << bev;
+        log_debug("{} {}", logPrefix, bev);
         bufferevent_free(bev);
     }
 }

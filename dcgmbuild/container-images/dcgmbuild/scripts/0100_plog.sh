@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^plog ' $1)
-
-curl --location --fail --output plog.tar.gz --retry 5 $URL
-echo "$SHA512SUM plog.tar.gz" | sha512sum --check -
-
 mkdir --parents plog/src
-tar xf plog.tar.gz -C plog/src --strip-components=1
+tar xf /tmp/downloads/plog.tar.gz -C plog/src --strip-components=1
 
 cmake -S plog/src -B plog/build \
     -D PLOG_BUILD_SAMPLES=OFF \
@@ -31,4 +26,4 @@ cmake -S plog/src -B plog/build \
 
 cmake --install plog/build
 
-rm -rf plog plog.tar.gz
+rm -rf plog

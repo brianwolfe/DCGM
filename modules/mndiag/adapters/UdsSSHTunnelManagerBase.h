@@ -38,8 +38,7 @@ public:
     virtual DcgmNs::Common::RemoteConn::detail::TunnelState StartSession(std::string_view remoteHostname,
                                                                          std::string const &remoteAddress,
                                                                          std::string &localAddress,
-                                                                         std::optional<uid_t> uid = std::nullopt)
-        = 0;
+                                                                         std::optional<uid_t> uid = std::nullopt) = 0;
 
     /**
      * @brief Ends an SSH tunnel session
@@ -50,8 +49,7 @@ public:
     virtual void EndSession(std::string_view remoteHostname,
                             std::string const &remoteAddress,
                             std::optional<uid_t> uid     = std::nullopt,
-                            std::optional<bool> forceEnd = std::nullopt)
-        = 0;
+                            std::optional<bool> forceEnd = std::nullopt) = 0;
 
     virtual bool SetChildProcessFuncs(DcgmNs::Common::RemoteConn::detail::ChildProcessFuncs const *childProcessFuncs)
         = 0;

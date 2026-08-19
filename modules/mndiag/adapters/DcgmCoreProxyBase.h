@@ -37,8 +37,7 @@ public:
 
     virtual dcgmReturn_t ChildProcessSpawn(dcgmChildProcessParams_t const &params,
                                            ChildProcessHandle_t &handle,
-                                           int &pid)
-        = 0;
+                                           int &pid)                                                          = 0;
     virtual dcgmReturn_t ChildProcessWait(ChildProcessHandle_t handle, int timeoutSec = -1)                   = 0;
     virtual dcgmReturn_t ChildProcessGetStatus(ChildProcessHandle_t handle, dcgmChildProcessStatus_t &status) = 0;
     virtual dcgmReturn_t ChildProcessDestroy(ChildProcessHandle_t handle, int sigTermTimeoutSec = 10)         = 0;

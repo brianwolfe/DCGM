@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -310,7 +310,7 @@ dcgmReturn_t CudaWorkerThread::AttachToCudaDeviceFromTaskThread(CUdevice device)
         { &m_cudaDevice.m_eccSupport, CU_DEVICE_ATTRIBUTE_ECC_ENABLED },
     };
 
-    for (auto const [value, cuDevAttr] : attributes)
+    for (auto const &[value, cuDevAttr] : attributes)
     {
         if (cuSt = cuDeviceGetAttribute(value, cuDevAttr, m_cudaDevice.m_device); cuSt != CUDA_SUCCESS)
         {

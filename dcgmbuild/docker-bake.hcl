@@ -27,14 +27,6 @@ variable "BASE_IMAGE" {
   default = "ubuntu:24.04"
 }
 
-variable "CROSSTOOL_SHA512SUM" {
-  default = "5297954cfdf7e59493e91060c996b8fe7843d155378066faa1d26a23a417b17cc4d008ed93d6408db89cf1b8c336729e22b5a104d6ccec096bdc2b958977ec41"
-}
-
-variable "CROSSTOOL_URL" {
-  default = "https://github.com/crosstool-ng/crosstool-ng/archive/c5a17024a9af713a218d533fe78b7cf9a02ec67e.tar.gz"
-}
-
 variable "GIT_COMMIT" {
   default = "unspecified"
 }
@@ -60,8 +52,6 @@ target "common-host-software" {
 target "toolchain" {
   args = {
     ARCHITECTURE = "${architecture}"
-    CROSSTOOL_SHA512SUM = "${CROSSTOOL_SHA512SUM}"
-    CROSSTOOL_URL = "${CROSSTOOL_URL}"
   }
   context = "container-images/toolchain"
   contexts = {

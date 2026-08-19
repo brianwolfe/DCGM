@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^yaml-cpp ' $1)
-
-curl --location --fail --output yaml-cpp.tar.gz --retry 5 $URL
-echo "$SHA512SUM yaml-cpp.tar.gz" | sha512sum --check -
-
 mkdir --parents yaml-cpp/src
-tar xf yaml-cpp.tar.gz -C yaml-cpp/src --strip-components=1
+tar xf /tmp/downloads/yaml-cpp.tar.gz -C yaml-cpp/src --strip-components=1
 
 cmake \
     -S yaml-cpp/src \
@@ -38,4 +33,4 @@ cmake \
 cmake --build yaml-cpp/build
 cmake --install yaml-cpp/build
 
-rm -rf yaml-cpp yaml-cpp.tar.gz
+rm -rf yaml-cpp

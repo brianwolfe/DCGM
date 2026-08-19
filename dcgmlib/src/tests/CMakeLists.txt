@@ -32,6 +32,7 @@ target_sources(dcgmlibtests
         DcgmImexManagerTests.cpp
         NvmlTaskRunnerTests.cpp
         DcgmModuleCoreTests.cpp
+        DcgmModuleCommandValidationTests.cpp
         DcgmCoreCommunicationTests.cpp
         DcgmFieldGroupTests.cpp
         DcgmHostEngineHandlerTests.cpp

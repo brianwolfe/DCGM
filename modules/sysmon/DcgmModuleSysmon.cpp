@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,17 @@ namespace DcgmNs
 
 using namespace DcgmNs::Cpu;
 
+static unsigned int GetRemainingCapacity(size_t current, unsigned int limit)
+{
+    size_t const max = limit;
+    if (current >= max)
+    {
+        return 0;
+    }
+
+    return static_cast<unsigned int>(max - current);
+}
+
 unsigned long long SysmonUtilizationSampleCore::GetTotal() const
 {
     return m_user + m_nice + m_system + m_idle + m_irq + m_other;
@@ -48,10 +59,19 @@ unsigned long long SysmonUtilizationSampleCore::GetActive() const
 }
 
 DcgmModuleSysmon::DcgmModuleSysmon(dcgmCoreCallbacks_t &dcc)
+    : DcgmModuleSysmon(dcc, TaskRunnerStartMode::Start)
+{}
+
+DcgmModuleSysmon::DcgmModuleSysmon(dcgmCoreCallbacks_t &dcc, TaskRunnerStartMode startMode)
     : DcgmModuleWithCoreProxy(dcc)
     , m_procStat("/proc/stat")
     , m_paused(true)
     , m_sysmonThreadId(0)
+{
+    Initialize(startMode);
+}
+
+void DcgmModuleSysmon::Initialize(TaskRunnerStartMode startMode)
 {
     DCGM_LOG_DEBUG << "Constructing Sysmon Module";
 
@@ -74,7 +94,15 @@ DcgmModuleSysmon::DcgmModuleSysmon(dcgmCoreCallbacks_t &dcc)
 
     PopulateTemperatureFileMap();
 
-    /* If Start() is called prior to initializtion completion, on partial construction due to an exception,
+    if (startMode == TaskRunnerStartMode::Start)
+    {
+        StartTaskRunner();
+    }
+}
+
+void DcgmModuleSysmon::StartTaskRunner()
+{
+    /* If Start() is called prior to initialization completion, on partial construction due to an exception,
        the thread may attempt to access uninitialized or destroyed members, leading to undefined behavior. */
     int st = Start();
     if (st)
@@ -85,6 +113,11 @@ DcgmModuleSysmon::DcgmModuleSysmon(dcgmCoreCallbacks_t &dcc)
 }
 
 DcgmModuleSysmon::~DcgmModuleSysmon()
+{
+    StopTaskRunner();
+}
+
+void DcgmModuleSysmon::StopTaskRunner() noexcept
 {
     try
     {
@@ -207,7 +240,7 @@ dcgmReturn_t DcgmModuleSysmon::ProcessMessageFromTaskRunner(dcgm_module_command_
             }
             case DCGM_SYSMON_SR_CREATE_FAKE_ENTITIES:
             {
-                ProcessCreateFakeEntities(moduleCommand);
+                retSt = ProcessCreateFakeEntities(moduleCommand);
                 break;
             }
 
@@ -403,6 +436,58 @@ dcgmReturn_t DcgmModuleSysmon::ProcessGetEntityStatus(GetEntityStatusMessage msg
 dcgmReturn_t DcgmModuleSysmon::ProcessCreateFakeEntities(CreateFakeEntitiesMessage msg)
 {
     ASSERT_IS_SYSMON_THREAD;
+    msg->numCreated = 0;
+
+    if (msg->numToCreate > DCGM_MAX_CPU_CREATE_IDS)
+    {
+        log_error("Cannot create {} fake entities because the response only has room for {} ids.",
+                  msg->numToCreate,
+                  DCGM_MAX_CPU_CREATE_IDS);
+        return DCGM_ST_BADPARAM;
+    }
+
+    if (msg->numToCreate == 0)
+    {
+        return DCGM_ST_OK;
+    }
+
+    switch (msg->groupToCreate)
+    {
+        case DCGM_FE_CPU:
+        {
+            unsigned int const remainingCapacity = GetRemainingCapacity(m_cpus.GetCpus().size(), DCGM_MAX_NUM_CPUS);
+            if (msg->numToCreate > remainingCapacity)
+            {
+                log_error("Cannot create {} fake CPUs because only {} CPU slots remain.",
+                          msg->numToCreate,
+                          remainingCapacity);
+                return DCGM_ST_INSUFFICIENT_RESOURCES;
+            }
+            break;
+        }
+        case DCGM_FE_CPU_CORE:
+        {
+            if (msg->parent.entityGroupId != DCGM_FE_CPU)
+            {
+                log_error("Cores can only have CPUs as parents, but {} was requested.", msg->parent.entityGroupId);
+                return DCGM_ST_BADPARAM;
+            }
+
+            unsigned int const remainingCapacity
+                = GetRemainingCapacity(m_cpus.GetTotalCoreCount(), DCGM_MAX_NUM_CPU_CORES);
+            if (msg->numToCreate > remainingCapacity)
+            {
+                log_error("Cannot create {} fake CPU cores because only {} CPU core slots remain.",
+                          msg->numToCreate,
+                          remainingCapacity);
+                return DCGM_ST_INSUFFICIENT_RESOURCES;
+            }
+            break;
+        }
+        default:
+            return DCGM_ST_NOT_SUPPORTED;
+    }
+
     for (unsigned int i = 0; i < msg->numToCreate; i++)
     {
         switch (msg->groupToCreate)
@@ -410,33 +495,17 @@ dcgmReturn_t DcgmModuleSysmon::ProcessCreateFakeEntities(CreateFakeEntitiesMessa
             case DCGM_FE_CPU:
             {
                 CpuId cpuId = m_cpus.AddFakeCpu();
-                if (cpuId.id == DCGM_MAX_NUM_CPUS)
-                {
-                    log_error("Cannot create a fake CPU because we've already reached the maximum number of CPUs.");
-                    return DCGM_ST_INSUFFICIENT_RESOURCES;
-                }
 
-                // SUCCESS
+                // If this failed, the id will indicate it to the caller
                 msg->numCreated++;
                 msg->ids[i] = cpuId.id;
                 break;
             }
             case DCGM_FE_CPU_CORE:
             {
-                if (msg->parent.entityGroupId != DCGM_FE_CPU)
-                {
-                    log_error("Cores can only have CPUs as parents, but {} was requested.", msg->parent.entityGroupId);
-                    return DCGM_ST_BADPARAM;
-                }
-
                 CoreId coreId = m_cpus.AddFakeCore(CpuId { msg->parent.entityId });
-                if (coreId.id == DCGM_MAX_NUM_CPU_CORES)
-                {
-                    log_error("Cannot create a fake core because we've already reached the maximum number of CPUs.");
-                    return DCGM_ST_INSUFFICIENT_RESOURCES;
-                }
 
-                // SUCCESS
+                // If this failed, the id will indicate it to the caller
                 msg->numCreated++;
                 msg->ids[i] = coreId.id;
                 break;

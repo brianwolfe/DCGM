@@ -39,11 +39,11 @@ void SetChildProcessFuncs(T &mgr, DcgmChildProcessManager &childProcessManager)
             [&childProcessManager](auto &&...args) {
                 return childProcessManager.GetDataChannelHandle(std::forward<decltype(args)>(args)...);
             },
-        .Stop                                                                     = [&childProcessManager](
+        .Stop = [&childProcessManager](
                     auto &&...args) { return childProcessManager.Stop(std::forward<decltype(args)>(args)...); },
-        .Wait                                                                     = [&childProcessManager](
+        .Wait = [&childProcessManager](
                     auto &&...args) { return childProcessManager.Wait(std::forward<decltype(args)>(args)...); },
-        .Destroy                                                                  = [&childProcessManager](
+        .Destroy = [&childProcessManager](
                        auto &&...args) { return childProcessManager.Destroy(std::forward<decltype(args)>(args)...); },
     };
     mgr.SetChildProcessFuncs(&childProcessFuncs);

@@ -37,6 +37,5 @@ public:
      */
     virtual std::unique_ptr<MnDiagMpiRunnerBase> CreateMpiRunner(DcgmCoreProxyBase &coreProxy,
                                                                  dcgmMultinodeTestType_t testType,
-                                                                 uid_t effectiveUid)
-        = 0;
+                                                                 uid_t effectiveUid) = 0;
 };

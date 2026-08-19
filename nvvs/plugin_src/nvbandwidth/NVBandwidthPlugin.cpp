@@ -30,6 +30,7 @@
 #include <fmt/format.h>
 #include <fstream>
 #include <sys/wait.h>
+#include <system_error>
 #include <thread>
 
 namespace
@@ -142,30 +143,31 @@ void NVBandwidthPlugin::Cleanup()
     // Restore or unset CUDA_VISIBLE_DEVICES based on whether it existed before
     if (!m_originalCudaVisibleDevices.empty())
     {
-        int rc = [this]() {
+        auto [rc, setenvErrno] = [this]() {
             DcgmLockGuard lg(&m_envMutex);
-            return setenv("CUDA_VISIBLE_DEVICES", m_originalCudaVisibleDevices.c_str(), 1);
+            int const rc = setenv("CUDA_VISIBLE_DEVICES", m_originalCudaVisibleDevices.c_str(), 1);
+            return std::make_tuple(rc, errno);
         }();
 
         if (rc)
         {
-            char errbuf[DCGM_MAX_STR_LENGTH];
-            strerror_r(errno, errbuf, sizeof(errbuf));
-            log_warning("Couldn't restore CUDA_VISIBLE_DEVICES to {} ({}).", m_originalCudaVisibleDevices, errbuf);
+            log_warning("Couldn't restore CUDA_VISIBLE_DEVICES to {} ({}).",
+                        m_originalCudaVisibleDevices,
+                        std::error_code(setenvErrno, std::generic_category()).message());
         }
     }
     else
     {
-        int rc = [this]() {
+        auto [rc, unsetenvErrno] = [this]() {
             DcgmLockGuard lg(&m_envMutex);
-            return unsetenv("CUDA_VISIBLE_DEVICES");
+            int const rc = unsetenv("CUDA_VISIBLE_DEVICES");
+            return std::make_tuple(rc, errno);
         }();
 
         if (rc)
         {
-            char errbuf[DCGM_MAX_STR_LENGTH];
-            strerror_r(errno, errbuf, sizeof(errbuf));
-            log_warning("Couldn't unset CUDA_VISIBLE_DEVICES ({}).", errbuf);
+            log_warning("Couldn't unset CUDA_VISIBLE_DEVICES ({}).",
+                        std::error_code(unsetenvErrno, std::generic_category()).message());
         }
     }
 
@@ -313,17 +315,17 @@ void NVBandwidthPlugin::Go(std::string const &testName,
     }
 
     // Set the new CUDA_VISIBLE_DEVICES value
-    int rc = [this](std::string_view value) {
+    std::string visibleDevicesStr = visibleDevices.str();
+    auto [rc, setenvErrno]        = [this](std::string_view value) {
         DcgmLockGuard lg(&m_envMutex);
-        return setenv("CUDA_VISIBLE_DEVICES", value.data(), 1);
-    }(visibleDevices.str());
+        int const rc = setenv("CUDA_VISIBLE_DEVICES", value.data(), 1);
+        return std::make_tuple(rc, errno);
+    }(visibleDevicesStr);
     if (rc)
     {
-        char errbuf[DCGM_MAX_STR_LENGTH];
-        strerror_r(errno, errbuf, sizeof(errbuf));
         log_warning("Couldn't set CUDA_VISIBLE_DEVICES to {} ({}). Attempting to run the nvbandwidth test anyway.",
-                    visibleDevices.str(),
-                    errbuf);
+                    visibleDevicesStr,
+                    std::error_code(setenvErrno, std::generic_category()).message());
     }
 
     auto nvBandwidthExecutable = FindExecutable("nvbandwidth", m_cudaDriverMajorVersion, false, m_nvbandwidthDir);

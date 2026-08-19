@@ -219,6 +219,7 @@ TEST_CASE("dcgm_errors: check full message")
     DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_NVLINK_ERROR_THRESHOLD,
                               d,
                               0,
+                              "field",
                               0,
                               0); // "Detected %ld %s NvLink errors on GPU %u's NVLink which exceeds threshold of %u"
     WARN(d.GetMessage());
@@ -335,7 +336,7 @@ TEST_CASE("dcgm_errors: check full message")
     CHECK(d.GetMessage().length() < DCGM_ERR_MSG_LENGTH);
     // field value, field name, gpu id, allowable threshold
     DCGM_ERROR_FORMAT_MESSAGE(
-        DCGM_FR_FIELD_THRESHOLD, d, 0, "field", 0); // "Detected %ld %s for GPU %u which is above the threshold %ld"
+        DCGM_FR_FIELD_THRESHOLD, d, 0, "field", 0, 0); // "Detected %ld %s for GPU %u which is above the threshold %ld"
     WARN(d.GetMessage());
     CHECK(d.GetMessage().length() < DCGM_ERR_MSG_LENGTH);
     // field value, field name, gpu id (same as DCGM_FR_FIELD_VIOLATION, but it's a double)
@@ -479,7 +480,7 @@ TEST_CASE("dcgm_errors: check full message")
     CHECK(d.GetMessage().length() < DCGM_ERR_MSG_LENGTH);
     // percentage of memory we tried to allocate, gpu id
     DCGM_ERROR_FORMAT_MESSAGE(
-        DCGM_FR_MEMORY_ALLOC, d, "1.0, 0"); // "Couldn't allocate at least %.1f%% of GPU memory on GPU %u"
+        DCGM_FR_MEMORY_ALLOC, d, 1.0, 0); // "Couldn't allocate at least %.1f%% of GPU memory on GPU %u"
     WARN(d.GetMessage());
     CHECK(d.GetMessage().length() < DCGM_ERR_MSG_LENGTH);
     // gpu id
@@ -556,6 +557,7 @@ TEST_CASE("dcgm_errors: check full message")
         DCGM_FR_NVLINK_CRC_ERROR_THRESHOLD,
         d,
         1.0,
+        "field",
         0); // "%.1f %s NvLink errors found occuring per second on GPU %u, exceeding the limit of 100 per second."
     WARN(d.GetMessage());
     CHECK(d.GetMessage().length() < DCGM_ERR_MSG_LENGTH);
@@ -610,7 +612,8 @@ TEST_CASE("dcgm_errors: check full message")
     WARN(d.GetMessage());
     CHECK(d.GetMessage().length() < DCGM_ERR_MSG_LENGTH);
     DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_ROW_REMAP_FAILURE,
-                              d); // "GPU %u had uncorrectable memory errors and row remapping failed."
+                              d,
+                              0); // "GPU %u had uncorrectable memory errors and row remapping failed."
     WARN(d.GetMessage());
     CHECK(d.GetMessage().length() < DCGM_ERR_MSG_LENGTH);
     DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_UNCONTAINED_ERROR, d); // "GPU had an uncontained error (XID 95)"

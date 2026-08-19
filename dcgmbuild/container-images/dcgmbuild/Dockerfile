@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.6
 
 # Copyright (c) 2024-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
@@ -14,6 +14,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+FROM scratch AS dcgmbuild-downloads
+
+ARG BOOST_URL
+ARG CATCH2_URL
+ARG FMT_URL
+ARG JSONCPP_URL
+ARG LIBEVENT_URL
+ARG LIBNUMA_URL
+ARG PLOG_URL
+ARG TCLAP_URL
+ARG YAML_CPP_URL
+ARG ZLIB_URL
+
+ARG BOOST_SHA256SUM
+ARG CATCH2_SHA256SUM
+ARG FMT_SHA256SUM
+ARG JSONCPP_SHA256SUM
+ARG LIBEVENT_SHA256SUM
+ARG LIBNUMA_SHA256SUM
+ARG PLOG_SHA256SUM
+ARG TCLAP_TAG
+ARG YAML_CPP_SHA256SUM
+ARG ZLIB_SHA256SUM
+
+ADD --checksum=${BOOST_SHA256SUM}    ${BOOST_URL}              /boost.tar.gz
+ADD --checksum=${CATCH2_SHA256SUM}   ${CATCH2_URL}             /catch2.tar.gz
+ADD --checksum=${FMT_SHA256SUM}      ${FMT_URL}                /fmt.tar.gz
+ADD --checksum=${JSONCPP_SHA256SUM}  ${JSONCPP_URL}            /jsoncpp.tar.gz
+ADD --checksum=${LIBEVENT_SHA256SUM} ${LIBEVENT_URL}           /libevent.tar.gz
+ADD --checksum=${LIBNUMA_SHA256SUM}  ${LIBNUMA_URL}            /libnuma.tar.gz
+ADD --checksum=${PLOG_SHA256SUM}     ${PLOG_URL}               /plog.tar.gz
+ADD                                  ${TCLAP_URL}#${TCLAP_TAG} /tclap
+ADD --checksum=${YAML_CPP_SHA256SUM} ${YAML_CPP_URL}           /yaml-cpp.tar.gz
+ADD --checksum=${ZLIB_SHA256SUM}     ${ZLIB_URL}               /zlib.tar.gz
 
 FROM toolchain AS builder
 
@@ -39,13 +74,14 @@ ENV CMAKE_INSTALL_PREFIX=/usr/local
 ENV CMAKE_BUILD_TYPE=RelWithDebInfo
 
 ARG JOBS
-RUN --mount=type=bind,source=scripts,target=/tmp/scripts \
+RUN --mount=type=bind,from=dcgmbuild-downloads,source=/,target=/tmp/downloads \
+    --mount=type=bind,source=scripts,target=/tmp/scripts \
     set -ex; \
     mkdir --parents $CMAKE_STAGING_PREFIX; \
     export MAKEFLAGS="--jobs=${JOBS:-$(nproc)}"; \
     find /tmp/scripts -name '*.sh' | sort | while read -r SCRIPT; \
-    do $SCRIPT /tmp/scripts/urls.txt; \
-    done;
+    do $SCRIPT; \
+    done
 
 FROM toolchain
 

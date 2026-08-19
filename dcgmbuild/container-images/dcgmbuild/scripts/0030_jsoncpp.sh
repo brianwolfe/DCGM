@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^jsoncpp ' $1)
-
-curl --location --fail --output jsoncpp.tar.gz --retry 5 $URL
-echo "$SHA512SUM jsoncpp.tar.gz" | sha512sum --check -
-
 mkdir --parents jsoncpp/src
-tar xf jsoncpp.tar.gz -C jsoncpp/src --strip-components=1
+tar xf /tmp/downloads/jsoncpp.tar.gz -C jsoncpp/src --strip-components=1
 
 cmake \
     -B jsoncpp/build \
@@ -41,4 +36,4 @@ cmake \
 cmake --build jsoncpp/build
 cmake --install jsoncpp/build
 
-rm -rf jsoncpp jsoncpp.tar.gz
+rm -rf jsoncpp

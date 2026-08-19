@@ -16,20 +16,8 @@
 
 set -ex
 
-mkdir --parents catch2/src
-tar xf /tmp/downloads/catch2.tar.gz -C catch2/src --strip-components=1
+mkdir git-lfs
+tar xf /tmp/downloads/git-lfs.tar.gz -C git-lfs --strip-components=1
+git-lfs/install.sh
 
-# Unit tests are not installed for client consumption. As such, it unnecessary
-# to build it as a static library or with position independent code
-cmake \
-    -S catch2/src \
-    -B catch2/build \
-    -D BUILD_TESTING=OFF \
-    -D CATCH_INSTALL_DOCS=OFF \
-    -D CMAKE_POSITION_INDEPENDENT_CODE=ON \
-    -D CMAKE_STAGING_PREFIX=$CMAKE_STAGING_PREFIX
-
-cmake --build catch2/build
-cmake --install catch2/build
-
-rm -rf catch2
+rm -rf git-lfs

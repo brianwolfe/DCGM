@@ -696,7 +696,7 @@ bool BusGrind::CheckPassFailSingleGpu(SmPerfDevice *device,
         auto const startTimeEC = std::chrono::microseconds(data[0].timestamp);
         auto const endTimeEC   = std::chrono::microseconds(data[1].timestamp);
         unsigned int elapsed   = std::chrono::duration_cast<std::chrono::minutes>(endTimeEC).count()
-                               - std::chrono::duration_cast<std::chrono::minutes>(startTimeEC).count();
+                                 - std::chrono::duration_cast<std::chrono::minutes>(startTimeEC).count();
 
         log_debug("PCIe test ran {} minutes with {} total corrected PCIe errors", elapsed, totalCorrectedErrors);
 

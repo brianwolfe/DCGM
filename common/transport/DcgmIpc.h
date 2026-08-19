@@ -28,8 +28,11 @@
 #include <future>
 #include <optional>
 #include <stack>
+#include <string>
+#include <sys/socket.h>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 typedef struct
 {
@@ -76,6 +79,60 @@ typedef std::function<void(dcgm_connection_id_t, std::unique_ptr<DcgmMessage>, v
    This will be invoked on a separate worker pool */
 typedef std::function<void(dcgm_connection_id_t, void *userData)> DcgmIpcProcessDisconnectFunc_f;
 
+namespace DcgmNs::Ipc::detail
+{
+/**
+ * Selects a libevent address-family hint for a TCP connect hostname.
+ *
+ * @param[in] hostname DNS name or numeric IP literal after IPv6 bracket stripping.
+ * @return AF_INET for IPv4 literals, AF_INET6 for IPv6 literals, or AF_UNSPEC for DNS names.
+ */
+[[nodiscard]] int GetConnectAddressFamilyHint(std::string const &hostname);
+
+/**
+ * A single resolved socket address to attempt a TCP connect against.
+ */
+struct ConnectCandidate
+{
+    sockaddr_storage addr {}; //!< Resolved socket address (IPv4 or IPv6)
+    socklen_t addrLen {};     //!< Length of the address stored in @ref addr
+};
+
+/**
+ * Resolves a TCP connect target into the ordered list of socket addresses to try.
+ *
+ * Numeric IP literals resolve to a single same-family candidate. DNS names resolve to every
+ * address the system resolver returns, in its preference order (RFC 6724), so IPv4-only,
+ * IPv6-only, and dual-stack names all surface every address the connect path can fall back
+ * through. This is what lets an IPv6-only hostname connect, while still allowing a dual-stack
+ * name to reach an IPv4-only listener after the IPv6 attempt fails.
+ *
+ * @param[in]  hostname   DNS name or numeric IP literal after IPv6 bracket stripping.
+ * @param[in]  port       TCP port to connect to.
+ * @param[out] candidates Resolved addresses, in resolver-preference order. Cleared on entry.
+ * @return DCGM_ST_OK on success, DCGM_ST_CONNECTION_NOT_VALID if resolution yields no usable address.
+ */
+[[nodiscard]] dcgmReturn_t ResolveTcpConnectCandidates(std::string const &hostname,
+                                                       int port,
+                                                       std::vector<ConnectCandidate> &candidates);
+
+/**
+ * Constrains a resolved candidate list to the legacy family-fallback policy: at most one
+ * address per family, IPv4 attempted before IPv6.
+ *
+ * This preserves DCGM's historical IPv4-first preference, so a dual-stack name still reaches an
+ * IPv4-only listener on the first attempt (no regression), while still permitting a single
+ * fallback to IPv6 for IPv6-only names or IPv6-only listeners. It intentionally does not retain
+ * additional same-family addresses, matching the one-address-per-family behavior of the original
+ * connect path.
+ *
+ * @param[in] resolved Addresses as returned by ResolveTcpConnectCandidates (resolver order).
+ * @return Up to two candidates ordered IPv4 then IPv6; empty if @p resolved is empty.
+ */
+[[nodiscard]] std::vector<ConnectCandidate> SelectFamilyFallbackCandidates(
+    std::vector<ConnectCandidate> const &resolved);
+} //namespace DcgmNs::Ipc::detail
+
 class DcgmIpcConnection
 {
 private:
@@ -87,12 +144,19 @@ private:
     std::stack<std::unique_ptr<DcgmMessage>> m_reuseMessages; /* Reuse messages rather than allocating and freeing them.
                                                                  Capacity is controlled with MAX_REUSE_MESSAGES_COUNT */
 
+    /* Resolved addresses still to try for a pending TCP connect, plus a cursor into them.
+       These let a pending connection fall back to the next resolved address (e.g. IPv4 after
+       IPv6) without losing m_connectPromise. Only meaningful while m_connectionState is PENDING. */
+    std::vector<DcgmNs::Ipc::detail::ConnectCandidate> m_connectCandidates;
+    size_t m_nextConnectCandidate = 0;
+
     static const size_t MAX_REUSE_MESSAGES_COUNT
         = 10; /* Maximum number of DcgmMessages we're willing to keep cached for reuse */
 
     /* Helpers to get/free a DcgmMessage object, possibly using the m_reuseMessages cache */
     std::unique_ptr<DcgmMessage> GetDcgmMessage(void);
     void CacheOrFreeDcgmMessage(std::unique_ptr<DcgmMessage> msg);
+    void FreeCurrentBev(char const *logPrefix);
 
 public:
     /* Promise used for async connect. Making this public for ease of use as a private class */
@@ -107,6 +171,29 @@ public:
     dcgmReturn_t SendMessage(std::unique_ptr<DcgmMessage> dcgmMessage);
     void SetConnectionState(DcgmIpcConnectionState_t state);
     dcgmReturn_t ReadMessages(struct bufferevent *bev, std::vector<std::unique_ptr<DcgmMessage>> &messages);
+
+    /** @brief Returns true while the connection has not yet reached ACTIVE or DISCONNECTED state.
+     *  @return true if the connection state is DCGM_IPC_CS_PENDING, false otherwise. */
+    [[nodiscard]] bool IsPending() const;
+
+    /** @brief Stores the ordered candidate list for a pending TCP connect and resets the cursor.
+     *  @param[in] candidates Addresses in the order they should be attempted. */
+    void SetConnectCandidates(std::vector<DcgmNs::Ipc::detail::ConnectCandidate> candidates);
+
+    /** @brief Returns true if at least one more resolved address remains to be attempted.
+     *  @return true if the candidate cursor has not yet reached the end of the candidate list. */
+    [[nodiscard]] bool HasNextConnectCandidate() const;
+
+    /** @brief Returns the next candidate and advances the cursor.
+     *  @return The next ConnectCandidate, or std::nullopt if no candidates remain. */
+    [[nodiscard]] std::optional<DcgmNs::Ipc::detail::ConnectCandidate> TakeNextConnectCandidate();
+
+    /** @brief Frees the current bufferevent and adopts @p newBev.
+     *
+     *  Used to retry a failed connect on a fresh socket without destroying the connection
+     *  or its promise. The old bufferevent's callbacks are cleared before it is freed.
+     *  @param[in] newBev The new bufferevent to adopt. Must not be nullptr. */
+    void ReplaceBev(struct bufferevent *newBev);
 };
 
 using InitParams
@@ -319,6 +406,17 @@ private:
 
     static void ConnectTcpAsyncImplCB(evutil_socket_t, short, void *data);
     void ConnectTcpAsyncImpl(DcgmIpcConnectTcp &tcpConnect);
+
+    /* Initiate a connect from an already-tracked bev to the connection's next resolved
+       address, advancing its candidate cursor. Returns DCGM_ST_OK if a connect was started. */
+    [[nodiscard]] dcgmReturn_t TcpConnectToNextCandidate(struct bufferevent *bev, DcgmIpcConnection &connection);
+
+    /* Allocate a fresh bufferevent and attempt the connection's next resolved address.
+       Takes full ownership of bev: on alloc failure bev is removed; on connect failure
+       the new bev is removed. Returns DCGM_ST_OK if the retry was successfully initiated. */
+    [[nodiscard]] dcgmReturn_t RetryWithFreshBev(struct bufferevent *bev,
+                                                 dcgm_connection_id_t connectionId,
+                                                 DcgmIpcConnection &connection);
 
     /*****************************************************************************/
     class DcgmIpcConnectDomain

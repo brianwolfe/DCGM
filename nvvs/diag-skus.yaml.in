@@ -4704,7 +4704,7 @@ skus:
       # dcgmproftester -t 1005 shows 1110GB or 1110000. Multiply by .75 to get ~832500
       minimum_bandwidth: 832500
     pulse_test:
-      is_allowed: false
+      is_allowed: true
     nvbandwidth:
       is_allowed: true
     memtest:

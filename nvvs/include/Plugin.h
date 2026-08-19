@@ -62,8 +62,7 @@ public:
     virtual void Go(std::string const &testName,
                     dcgmDiagPluginEntityList_v1 const *entityInfo,
                     unsigned int numParameters,
-                    const dcgmDiagPluginTestParameter_t *testParameters)
-        = 0;
+                    const dcgmDiagPluginTestParameter_t *testParameters) = 0;
 
     /* Getters and Setters */
     /*************************************************************************/

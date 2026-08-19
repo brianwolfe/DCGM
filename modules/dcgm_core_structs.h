@@ -21,84 +21,84 @@
 
 /*****************************************************************************/
 /* Core Subrequest IDs */
-#define DCGM_CORE_SR_CLIENT_DISCONNECT                      1  /* Notify modules that a client logged out */
-#define DCGM_CORE_SR_SET_LOGGING_SEVERITY                   2  /* Set logging severity */
-#define DCGM_CORE_SR_GROUP_REMOVED                          3  /* Notify modules that a group was removed */
-#define DCGM_CORE_SR_FIELD_VALUES_UPDATED                   4  /* Notify modules that field values were updated */
-#define DCGM_CORE_SR_LOGGING_CHANGED                        5  /* Notify modules that logging severity has changed */
-#define DCGM_CORE_SR_MIG_UPDATED                            6  /* Notify modules that mig config has been updated */
-#define DCGM_CORE_SR_MIG_ENTITY_CREATE                      7  /* Create a MIG entity */
-#define DCGM_CORE_SR_MIG_ENTITY_DELETE                      8  /* Delete a MIG entity */
-#define DCGM_CORE_SR_GET_GPU_STATUS                         9  /* Get gpu status */
-#define DCGM_CORE_SR_HOSTENGINE_VERSION                     10 /* Get hostengine version info */
-#define DCGM_CORE_SR_CREATE_GROUP                           11 /* Create a group */
-#define DCGM_CORE_SR_REMOVE_ENTITY                          12 /* Remove an entity */
-#define DCGM_CORE_SR_GROUP_DESTROY                          13 /* Remove a group */
-#define DCGM_CORE_SR_GET_ENTITY_GROUP_ENTITIES              14 /* Get list of entities for a given entity group */
-#define DCGM_CORE_SR_GROUP_GET_ALL_IDS                      15 /* Get list of all group ids */
-#define DCGM_CORE_SR_GROUP_GET_INFO                         16 /* Get info about a specified group */
-#define DCGM_CORE_SR_JOB_START_STATS                        17 /* Start job stat collection */
-#define DCGM_CORE_SR_JOB_STOP_STATS                         18 /* Stop job stat collection */
-#define DCGM_CORE_SR_JOB_GET_STATS                          19 /* Get job stats */
-#define DCGM_CORE_SR_JOB_REMOVE                             20 /* Remove job stat collection */
-#define DCGM_CORE_SR_JOB_REMOVE_ALL                         21 /* Remove all job stat collections */
-#define DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V1          22 /* Get the latest field values for the specified entities */
-#define DCGM_CORE_SR_GET_MULTIPLE_VALUES_FOR_FIELD_V1       23 /* Get multiples values for a given field */
-#define DCGM_CORE_SR_WATCH_FIELD_VALUE_V1                   24 /* Watch a gpu's field value (DCGM 2.x) */
-#define DCGM_CORE_SR_UPDATE_ALL_FIELDS                      25 /* Update all fields */
-#define DCGM_CORE_SR_UNWATCH_FIELD_VALUE                    26 /* Stop watching a field value */
-#define DCGM_CORE_SR_INJECT_FIELD_VALUE                     27 /* Inject a field value */
-#define DCGM_CORE_SR_GET_CACHE_MANAGER_FIELD_INFO           28 /* Get info about a field from cache manager */
-#define DCGM_CORE_SR_WATCH_FIELDS                           29 /* Set watch on a group of fields */
-#define DCGM_CORE_SR_UNWATCH_FIELDS                         30 /* Unwatch a group of fields */
-#define DCGM_CORE_SR_GET_TOPOLOGY                           31 /* Get topology */
-#define DCGM_CORE_SR_GET_TOPOLOGY_AFFINITY                  32 /* Get topology affinity */
-#define DCGM_CORE_SR_SELECT_TOPOLOGY_GPUS                   33 /* Select Gpus based on topology criteria */
-#define DCGM_CORE_SR_GET_ALL_DEVICES                        34 /* Get array of device ids */
-#define DCGM_CORE_SR_GROUP_ADD_ENTITY                       35 /* Add entity to group */
-#define DCGM_CORE_SR_CLIENT_LOGIN                           36 /* Set client login parameters */
-#define DCGM_CORE_SR_SET_ENTITY_LINK_STATE                  37 /* Set the state of an entity's nvlink */
-#define DCGM_CORE_SR_FIELDGROUP_CREATE                      38 /* Create a fieldgroup */
-#define DCGM_CORE_SR_FIELDGROUP_DESTROY                     39 /* Destroy a fieldgroup */
-#define DCGM_CORE_SR_FIELDGROUP_GET_INFO                    40 /* Get info about one fieldgroup */
-#define DCGM_CORE_SR_PID_GET_INFO                           41 /* Get info about one pid */
-#define DCGM_CORE_SR_GET_FIELD_SUMMARY                      42 /* Get summary of a particular field */
-#define DCGM_CORE_SR_GET_NVLINK_STATUS                      43 /* Get status of nvlink */
-#define DCGM_CORE_SR_CREATE_FAKE_ENTITIES                   44 /* Create fake entities */
-#define DCGM_CORE_SR_WATCH_PREDEFINED_FIELDS                45 /* Watch predefined fields */
-#define DCGM_CORE_SR_MODULE_DENYLIST                        46 /* Add a module to the denylist */
-#define DCGM_CORE_SR_MODULE_STATUS                          47 /* Get the status of modules */
-#define DCGM_CORE_SR_HOSTENGINE_HEALTH                      48 /* Get health of hostengine */
-#define DCGM_CORE_SR_FIELDGROUP_GET_ALL                     49 /* Get all fieldgroup info */
-#define DCGM_CORE_SR_GET_GPU_INSTANCE_HIERARCHY             50 /* Get gpu instance hierarchy */
-#define DCGM_CORE_SR_PROF_GET_METRIC_GROUPS                 51 /* Get profiling metric groups */
-#define DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V2          52 /* Get the latest field values for the specified entities */
-#define DCGM_CORE_SR_WATCH_FIELD_VALUE_V2                   53 /* Watch a gpu's field value (DCGM 3.x+) */
-#define DCGM_CORE_SR_GET_MULTIPLE_VALUES_FOR_FIELD_V2       54 /* Get multiples values for a given field (V2) */
-#define DCGM_CORE_SR_NVML_CREATE_FAKE_ENTITY                55 /* Create an entity in the injection NVML library */
-#define DCGM_CORE_SR_NVML_INJECT_FIELD_VALUE                56 /* Inject a value into injection NVML */
-#define DCGM_CORE_SR_NVML_INJECT_DEVICE                     57 /* Inject a value for an NVML device */
-#define DCGM_CORE_SR_PAUSE_RESUME                           58 /* Pause/Resume all metrics collection */
+#define DCGM_CORE_SR_CLIENT_DISCONNECT                1  /* Notify modules that a client logged out */
+#define DCGM_CORE_SR_SET_LOGGING_SEVERITY             2  /* Set logging severity */
+#define DCGM_CORE_SR_GROUP_REMOVED                    3  /* Notify modules that a group was removed */
+#define DCGM_CORE_SR_FIELD_VALUES_UPDATED             4  /* Notify modules that field values were updated */
+#define DCGM_CORE_SR_LOGGING_CHANGED                  5  /* Notify modules that logging severity has changed */
+#define DCGM_CORE_SR_MIG_UPDATED                      6  /* Notify modules that mig config has been updated */
+#define DCGM_CORE_SR_MIG_ENTITY_CREATE                7  /* Create a MIG entity */
+#define DCGM_CORE_SR_MIG_ENTITY_DELETE                8  /* Delete a MIG entity */
+#define DCGM_CORE_SR_GET_GPU_STATUS                   9  /* Get gpu status */
+#define DCGM_CORE_SR_HOSTENGINE_VERSION               10 /* Get hostengine version info */
+#define DCGM_CORE_SR_CREATE_GROUP                     11 /* Create a group */
+#define DCGM_CORE_SR_REMOVE_ENTITY                    12 /* Remove an entity */
+#define DCGM_CORE_SR_GROUP_DESTROY                    13 /* Remove a group */
+#define DCGM_CORE_SR_GET_ENTITY_GROUP_ENTITIES        14 /* Get list of entities for a given entity group */
+#define DCGM_CORE_SR_GROUP_GET_ALL_IDS                15 /* Get list of all group ids */
+#define DCGM_CORE_SR_GROUP_GET_INFO                   16 /* Get info about a specified group */
+#define DCGM_CORE_SR_JOB_START_STATS                  17 /* Start job stat collection */
+#define DCGM_CORE_SR_JOB_STOP_STATS                   18 /* Stop job stat collection */
+#define DCGM_CORE_SR_JOB_GET_STATS                    19 /* Get job stats */
+#define DCGM_CORE_SR_JOB_REMOVE                       20 /* Remove job stat collection */
+#define DCGM_CORE_SR_JOB_REMOVE_ALL                   21 /* Remove all job stat collections */
+#define DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V1    22 /* Get the latest field values for the specified entities */
+#define DCGM_CORE_SR_GET_MULTIPLE_VALUES_FOR_FIELD_V1 23 /* Get multiples values for a given field */
+#define DCGM_CORE_SR_WATCH_FIELD_VALUE_V1             24 /* Watch a gpu's field value (DCGM 2.x) */
+#define DCGM_CORE_SR_UPDATE_ALL_FIELDS                25 /* Update all fields */
+#define DCGM_CORE_SR_UNWATCH_FIELD_VALUE              26 /* Stop watching a field value */
+#define DCGM_CORE_SR_INJECT_FIELD_VALUE               27 /* Inject a field value */
+#define DCGM_CORE_SR_GET_CACHE_MANAGER_FIELD_INFO     28 /* Get info about a field from cache manager */
+#define DCGM_CORE_SR_WATCH_FIELDS                     29 /* Set watch on a group of fields */
+#define DCGM_CORE_SR_UNWATCH_FIELDS                   30 /* Unwatch a group of fields */
+#define DCGM_CORE_SR_GET_TOPOLOGY                     31 /* Get topology */
+#define DCGM_CORE_SR_GET_TOPOLOGY_AFFINITY            32 /* Get topology affinity */
+#define DCGM_CORE_SR_SELECT_TOPOLOGY_GPUS             33 /* Select Gpus based on topology criteria */
+#define DCGM_CORE_SR_GET_ALL_DEVICES                  34 /* Get array of device ids */
+#define DCGM_CORE_SR_GROUP_ADD_ENTITY                 35 /* Add entity to group */
+#define DCGM_CORE_SR_CLIENT_LOGIN                     36 /* Set client login parameters */
+#define DCGM_CORE_SR_SET_ENTITY_LINK_STATE            37 /* Set the state of an entity's nvlink */
+#define DCGM_CORE_SR_FIELDGROUP_CREATE                38 /* Create a fieldgroup */
+#define DCGM_CORE_SR_FIELDGROUP_DESTROY               39 /* Destroy a fieldgroup */
+#define DCGM_CORE_SR_FIELDGROUP_GET_INFO              40 /* Get info about one fieldgroup */
+#define DCGM_CORE_SR_PID_GET_INFO                     41 /* Get info about one pid */
+#define DCGM_CORE_SR_GET_FIELD_SUMMARY                42 /* Get summary of a particular field */
+#define DCGM_CORE_SR_GET_NVLINK_STATUS                43 /* Get status of nvlink */
+#define DCGM_CORE_SR_CREATE_FAKE_ENTITIES             44 /* Create fake entities */
+#define DCGM_CORE_SR_WATCH_PREDEFINED_FIELDS          45 /* Watch predefined fields */
+#define DCGM_CORE_SR_MODULE_DENYLIST                  46 /* Add a module to the denylist */
+#define DCGM_CORE_SR_MODULE_STATUS                    47 /* Get the status of modules */
+#define DCGM_CORE_SR_HOSTENGINE_HEALTH                48 /* Get health of hostengine */
+#define DCGM_CORE_SR_FIELDGROUP_GET_ALL               49 /* Get all fieldgroup info */
+#define DCGM_CORE_SR_GET_GPU_INSTANCE_HIERARCHY       50 /* Get gpu instance hierarchy */
+#define DCGM_CORE_SR_PROF_GET_METRIC_GROUPS           51 /* Get profiling metric groups */
+#define DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V2    52 /* Get the latest field values for the specified entities */
+#define DCGM_CORE_SR_WATCH_FIELD_VALUE_V2             53 /* Watch a gpu's field value (DCGM 3.x+) */
+#define DCGM_CORE_SR_GET_MULTIPLE_VALUES_FOR_FIELD_V2 54 /* Get multiples values for a given field (V2) */
+#define DCGM_CORE_SR_NVML_CREATE_FAKE_ENTITY          55 /* Create an entity in the injection NVML library */
+#define DCGM_CORE_SR_NVML_INJECT_FIELD_VALUE          56 /* Inject a value into injection NVML */
+#define DCGM_CORE_SR_NVML_INJECT_DEVICE               57 /* Inject a value for an NVML device */
+#define DCGM_CORE_SR_PAUSE_RESUME                     58 /* Pause/Resume all metrics collection */
 #define DCGM_CORE_SR_NVML_INJECT_DEVICE_FOR_FOLLOWING_CALLS 59 /* Inject a series of values for an NVML device */
 #define DCGM_CORE_SR_NVML_INJECTED_DEVICE_RESET             60 /* Reset injected values for an NVML device */
 #define DCGM_CORE_SR_GET_NVML_INJECT_FUNC_CALL_COUNT        61 /* Get counts of nvml injected function calls */
 #define DCGM_CORE_SR_RESET_NVML_FUNC_CALL_COUNT             62 /* Reset counts of nvml injected function calls */
-#define DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3          63 /* Get the latest field values for the specified entities */
-#define DCGM_CORE_SR_GET_WORKLOAD_POWER_PROFILES_STATUS     64 /* Get info and status of GPU workload power profiles */
-#define DCGM_CORE_SR_REMOVE_NVML_INJECTED_GPU               65 /* Remove nvml injected GPU from injection library */
-#define DCGM_CORE_SR_RESTORE_NVML_INJECTED_GPU              66 /* Restore nvml injected GPU to injection library */
-#define DCGM_CORE_SR_NVSWITCH_GET_BACKEND                   67 /* Get name for active NVSwitch backend */
-#define DCGM_CORE_SR_RESOURCE_RESERVE                       68 /* Reserve resources for a module */
-#define DCGM_CORE_SR_RESOURCE_FREE                          69 /* Free resources for a module */
-#define DCGM_CORE_SR_GET_GPU_CHIP_ARCHITECTURE              70 /* Get simplified GPU chip architecture */
-#define DCGM_CORE_SR_GET_NVLINK_P2P_STATUS                  71 /* Get p2p status of nvlink */
-#define DCGM_CORE_SR_DETACH_GPUS                            72 /* Preserve all GPUs info and detach GPUs from this module */
-#define DCGM_CORE_SR_ATTACH_GPUS                            73 /* Attach GPUs to this module and restore preserved GPUs info */
-#define DCGM_CORE_SR_HOSTENGINE_ENV_VAR_INFO                74 /* Get hostengine environment variable info */
-#define DCGM_CORE_SR_ATTACH_DRIVER                          75 /* Attach driver to the DCGM */
-#define DCGM_CORE_SR_DETACH_DRIVER                          76 /* Detach driver from the DCGM */
-#define DCGM_CORE_SR_EMPTY_CACHE                            77 /* Empty Cache Mmanager cache */
-#define DCGM_CORE_SR_MARK_MODULES_RELOADABLE                78 /* Mark modules reloadable */
+#define DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V3      63 /* Get the latest field values for the specified entities */
+#define DCGM_CORE_SR_GET_WORKLOAD_POWER_PROFILES_STATUS 64 /* Get info and status of GPU workload power profiles */
+#define DCGM_CORE_SR_REMOVE_NVML_INJECTED_GPU           65 /* Remove nvml injected GPU from injection library */
+#define DCGM_CORE_SR_RESTORE_NVML_INJECTED_GPU          66 /* Restore nvml injected GPU to injection library */
+#define DCGM_CORE_SR_NVSWITCH_GET_BACKEND               67 /* Get name for active NVSwitch backend */
+#define DCGM_CORE_SR_RESOURCE_RESERVE                   68 /* Reserve resources for a module */
+#define DCGM_CORE_SR_RESOURCE_FREE                      69 /* Free resources for a module */
+#define DCGM_CORE_SR_GET_GPU_CHIP_ARCHITECTURE          70 /* Get simplified GPU chip architecture */
+#define DCGM_CORE_SR_GET_NVLINK_P2P_STATUS              71 /* Get p2p status of nvlink */
+#define DCGM_CORE_SR_DETACH_GPUS                        72 /* Preserve all GPUs info and detach GPUs from this module */
+#define DCGM_CORE_SR_ATTACH_GPUS             73 /* Attach GPUs to this module and restore preserved GPUs info */
+#define DCGM_CORE_SR_HOSTENGINE_ENV_VAR_INFO 74 /* Get hostengine environment variable info */
+#define DCGM_CORE_SR_ATTACH_DRIVER           75 /* Attach driver to the DCGM */
+#define DCGM_CORE_SR_DETACH_DRIVER           76 /* Detach driver from the DCGM */
+#define DCGM_CORE_SR_EMPTY_CACHE             77 /* Empty Cache Mmanager cache */
+#define DCGM_CORE_SR_MARK_MODULES_RELOADABLE 78 /* Mark modules reloadable */
 #define DCGM_CORE_SR_ENTITIES_GET_LATEST_VALUES_V4 \
     79 /* Same as V3 with a smaller payload buffer so the message fits DCGM_PROTO_MAX_MESSAGE_SIZE */
 

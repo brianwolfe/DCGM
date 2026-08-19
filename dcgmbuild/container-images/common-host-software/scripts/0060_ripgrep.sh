@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^ripgrep ' $1)
-
-curl --location --fail --output ripgrep.tar.gz --retry 5 $URL
-echo "$SHA512SUM ripgrep.tar.gz" | sha512sum --check -
-
 mkdir ripgrep
-tar xzf ripgrep.tar.gz -C ripgrep --strip-components=1
+tar xzf /tmp/downloads/ripgrep.tar.gz -C ripgrep --strip-components=1
 
 cp -a ripgrep/rg /usr/local/bin/
-rm -rf ripgrep ripgrep.tar.gz
+rm -rf ripgrep

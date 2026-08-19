@@ -211,13 +211,11 @@ void PopulateDevIdsAndSerials(std::vector<std::unique_ptr<EntitySet>> const &ent
 
 template <>
 void PopulateDevIdsAndSerials(std::vector<std::unique_ptr<EntitySet>> const &entitySets,
-                              dcgmDiagResponse_v12 &diagResponse)
-    = delete;
+                              dcgmDiagResponse_v12 &diagResponse) = delete;
 
 template <>
 void PopulateDevIdsAndSerials(std::vector<std::unique_ptr<EntitySet>> const &entitySets,
-                              dcgmDiagResponse_v11 &diagResponse)
-    = delete;
+                              dcgmDiagResponse_v11 &diagResponse) = delete;
 
 void PopulateDevIds(std::vector<std::unique_ptr<EntitySet>> const &entitySets, dcgmDiagResponse_v8 &diagResponse)
 {

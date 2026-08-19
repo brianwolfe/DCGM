@@ -126,15 +126,15 @@ const char *EntityToString(dcgm_field_entity_group_t entityGroupId)
         bool updateOnFirstWatch = false; /* All of the callers of this call UpdateFields() right after */ \
         bool wereFirstWatcher   = false;                                                                  \
         ret                     = mpCoreProxy.AddFieldWatch(entityGroupId,                                \
-                                        entityId,                                     \
-                                        fieldId,                                      \
-                                        updateInterval,                               \
-                                        maxKeepAge,                                   \
-                                        0,                                            \
-                                        watcher,                                      \
-                                        false,                                        \
-                                        updateOnFirstWatch,                           \
-                                        wereFirstWatcher);                            \
+                                                            entityId,                                     \
+                                                            fieldId,                                      \
+                                                            updateInterval,                               \
+                                                            maxKeepAge,                                   \
+                                                            0,                                            \
+                                                            watcher,                                      \
+                                                            false,                                        \
+                                                            updateOnFirstWatch,                           \
+                                                            wereFirstWatcher);                            \
         if (DCGM_ST_OK != ret)                                                                            \
         {                                                                                                 \
             log_error("Failed to set watch for field {} on {} {} group {}",                               \
@@ -152,15 +152,15 @@ const char *EntityToString(dcgm_field_entity_group_t entityGroupId)
         bool updateOnFirstWatch = false; /* callers call UpdateFields() right after */ \
         bool wereFirstWatcher   = false;                                               \
         ret                     = mpCoreProxy.AddFieldWatch(DCGM_FE_NONE,              \
-                                        0,                         \
-                                        fieldId,                   \
-                                        updateInterval,            \
-                                        maxKeepAge,                \
-                                        0,                         \
-                                        watcher,                   \
-                                        false,                     \
-                                        updateOnFirstWatch,        \
-                                        wereFirstWatcher);         \
+                                                            0,                         \
+                                                            fieldId,                   \
+                                                            updateInterval,            \
+                                                            maxKeepAge,                \
+                                                            0,                         \
+                                                            watcher,                   \
+                                                            false,                     \
+                                                            updateOnFirstWatch,        \
+                                                            wereFirstWatcher);         \
         if (DCGM_ST_OK != ret)                                                         \
         {                                                                              \
             log_error("Failed to set global watch for field {}", fieldId);             \
@@ -1164,15 +1164,15 @@ dcgmReturn_t DcgmHealthWatch::SetInforom(dcgm_field_entity_group_t entityGroupId
        Use a faster update interval than the hourly InfoROM validity poll. */
     long long const xidUpdateInterval = MIN_HEALTH_WATCH_UPDATE_INTERVAL_US;
     ret                               = mpCoreProxy.AddFieldWatch(entityGroupId,
-                                    entityId,
-                                    DCGM_FI_DEV_XID_ERROR,
-                                    xidUpdateInterval,
-                                    maxKeepAge,
-                                    0,
-                                    watcher,
-                                    true,
-                                    updateOnFirstWatch,
-                                    wereFirstWatcher);
+                                                                  entityId,
+                                                                  DCGM_FI_DEV_XID_ERROR,
+                                                                  xidUpdateInterval,
+                                                                  maxKeepAge,
+                                                                  0,
+                                                                  watcher,
+                                                                  true,
+                                                                  updateOnFirstWatch,
+                                                                  wereFirstWatcher);
     if (DCGM_ST_OK != ret)
     {
         log_error("Failed to set watch for field {} on {} {}",
@@ -1754,13 +1754,13 @@ dcgmReturn_t DcgmHealthWatch::MonitorMemRetiredPending(dcgm_field_entity_group_t
     dcgmcm_sample_t retiredPending = {};
     int count                      = 1;
     dcgmReturn_t ret               = mpCoreProxy.GetSamples(entityGroupId,
-                                              entityId,
-                                              DCGM_FI_DEV_PAGE_RETIRED_PENDING,
-                                              &retiredPending,
-                                              &count,
-                                              startTime,
-                                              endTime,
-                                              DCGM_ORDER_DESCENDING);
+                                                            entityId,
+                                                            DCGM_FI_DEV_PAGE_RETIRED_PENDING,
+                                                            &retiredPending,
+                                                            &count,
+                                                            startTime,
+                                                            endTime,
+                                                            DCGM_ORDER_DESCENDING);
 
     if (ret != DCGM_ST_OK && ret != DCGM_ST_NO_DATA && ret != DCGM_ST_NOT_WATCHED)
     {
@@ -1789,13 +1789,13 @@ dcgmReturn_t DcgmHealthWatch::MonitorMemSbeDbeRetiredPages(dcgm_field_entity_gro
     dcgmcm_sample_t dbeRetiredPage = {};
     int count                      = 1;
     dcgmReturn_t ret               = mpCoreProxy.GetSamples(entityGroupId,
-                                              entityId,
-                                              DCGM_FI_DEV_PAGE_RETIRED_DBE_TOTAL,
-                                              &dbeRetiredPage,
-                                              &count,
-                                              startTime,
-                                              endTime,
-                                              DCGM_ORDER_DESCENDING);
+                                                            entityId,
+                                                            DCGM_FI_DEV_PAGE_RETIRED_DBE_TOTAL,
+                                                            &dbeRetiredPage,
+                                                            &count,
+                                                            startTime,
+                                                            endTime,
+                                                            DCGM_ORDER_DESCENDING);
 
     if (ret != DCGM_ST_OK && ret != DCGM_ST_NO_DATA && ret != DCGM_ST_NOT_WATCHED)
     {
@@ -1805,13 +1805,13 @@ dcgmReturn_t DcgmHealthWatch::MonitorMemSbeDbeRetiredPages(dcgm_field_entity_gro
 
     count = 1;
     ret   = mpCoreProxy.GetSamples(entityGroupId,
-                                 entityId,
-                                 DCGM_FI_DEV_PAGE_RETIRED_SBE_TOTAL,
-                                 &sbeRetiredPage,
-                                 &count,
-                                 startTime,
-                                 endTime,
-                                 DCGM_ORDER_DESCENDING);
+                                   entityId,
+                                   DCGM_FI_DEV_PAGE_RETIRED_SBE_TOTAL,
+                                   &sbeRetiredPage,
+                                   &count,
+                                   startTime,
+                                   endTime,
+                                   DCGM_ORDER_DESCENDING);
 
     if (ret != DCGM_ST_OK && ret != DCGM_ST_NO_DATA && ret != DCGM_ST_NOT_WATCHED)
     {
@@ -1928,7 +1928,7 @@ dcgmReturn_t DcgmHealthWatch::MonitorMemRowRemapFailures(dcgm_field_entity_group
     if (sample.val.i64 > 0)
     {
         DcgmError d { entityId };
-        DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_ROW_REMAP_FAILURE, d);
+        DCGM_ERROR_FORMAT_MESSAGE(DCGM_FR_ROW_REMAP_FAILURE, d, entityId);
         SetResponse(entityGroupId, entityId, DCGM_HEALTH_RESULT_FAIL, DCGM_HEALTH_WATCH_MEM, d, response);
     }
 
@@ -2046,7 +2046,7 @@ dcgmReturn_t DcgmHealthWatch::MonitorImex(dcgm_field_entity_group_t /* entityGro
         // FAIL: DOWN, DEGRADED
         auto const domainStatus = std::string_view(sample.val.str);
         bool isDomainHealthy    = (domainStatus == "UP") || (domainStatus == "NOT_INSTALLED")
-                               || (domainStatus == "NOT_CONFIGURED") || (domainStatus == "UNAVAILABLE");
+                                  || (domainStatus == "NOT_CONFIGURED") || (domainStatus == "UNAVAILABLE");
 
         if (!isDomainHealthy)
         {
@@ -2087,9 +2087,9 @@ dcgmReturn_t DcgmHealthWatch::MonitorImex(dcgm_field_entity_group_t /* entityGro
     // FAIL: All other states (INITIALIZING, STARTING_AUTH_SERVER, etc.)
     DcgmImexDaemonStatus const daemonStatus = static_cast<DcgmImexDaemonStatus>(sample.val.i64);
     bool const isDaemonHealthy              = (daemonStatus == DcgmImexDaemonStatus::UNAVAILABLE)
-                                 || (daemonStatus == DcgmImexDaemonStatus::READY)
-                                 || (daemonStatus == DcgmImexDaemonStatus::NOT_INSTALLED)
-                                 || (daemonStatus == DcgmImexDaemonStatus::NOT_CONFIGURED);
+                                              || (daemonStatus == DcgmImexDaemonStatus::READY)
+                                              || (daemonStatus == DcgmImexDaemonStatus::NOT_INSTALLED)
+                                              || (daemonStatus == DcgmImexDaemonStatus::NOT_CONFIGURED);
 
     if (!isDaemonHealthy)
     {

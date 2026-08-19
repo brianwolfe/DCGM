@@ -16,12 +16,10 @@ import time
 import datetime
 import json
 import os
-import sys
 import pkgutil
 import operator
 import math
 from collections import defaultdict
-from distutils.version import LooseVersion  # pylint: disable=import-error,no-name-in-module
 
 import dcgm_structs
 import dcgm_agent_internal
@@ -36,13 +34,11 @@ import option_parser
 
 from test_globals import BOUNDED_TEST_DURATION
 
-REQ_MATPLOTLIB_VER = '1.5.1'
+HAS_MATPLOTLIB = False
 
 
-def isReqMatplotlibVersion():
-    return 'matplotlib' in sys.modules and \
-        LooseVersion(matplotlib.__version__) >= LooseVersion(
-            REQ_MATPLOTLIB_VER)
+def isMatplotlibAvailable():
+    return HAS_MATPLOTLIB
 
 
 try:
@@ -51,18 +47,12 @@ except ImportError:
     logger.info(
         'Graphs for performance tests will be missing since "matplotlib" is not installed')
 else:
-    if not isReqMatplotlibVersion():
-        logger.info(
-            'Graphs for performance tests will be missing since "matplotlib" version ' +
-            '%s is less than the required version %s' %
-            (matplotlib.__version__,
-             REQ_MATPLOTLIB_VER))
-    else:
-        # must do this before importing matplotlib.pyplot
-        # to use backend that does not require X11 display server running
-        matplotlib.use('AGG')
-        from matplotlib import pyplot as plt
-        plt.style.use('ggplot')                 # pylint: disable=no-member
+    # must do this before importing matplotlib.pyplot
+    # to use backend that does not require X11 display server running
+    matplotlib.use('AGG')
+    from matplotlib import pyplot as plt
+    plt.style.use('ggplot')                 # pylint: disable=no-member
+    HAS_MATPLOTLIB = True
 
 
 class MetadataTimeseries(object):
@@ -89,9 +79,9 @@ def _plotFinalValueOrderedBarChart(
         filenameBase,
         topValCount=20):
     '''points are (x, y) pairs where x is the xlabel and y is the height of the var'''
-    if not isReqMatplotlibVersion():
+    if not isMatplotlibAvailable():
         logger.info(
-            'not generating ordered bar chart since "matplotlib" is not the required version')
+            'not generating ordered bar chart since "matplotlib" is not installed')
         return
     if logger.log_dir is None:
         logger.info(
@@ -139,13 +129,14 @@ def _plot_metadata(x, yLists, title, ylabel, plotNum):
 
 
 def _generate_metadata_line_charts(metadataTSeries, ylabel, title):
-    if not isReqMatplotlibVersion():
+    if not isMatplotlibAvailable():
         logger.info(
-            'Not generating memory usage plots since "matplotlib" is not the required version')
+            'Not generating %s plots since "matplotlib" is not installed' %
+            title)
         return
     if logger.log_dir is None:
         logger.info(
-            'Not generating memory usage plots since logging is disabled')
+            'Not generating %s plots since logging is disabled' % title)
         return
 
     if metadataTSeries.allFieldsVals:
@@ -363,9 +354,9 @@ def test_dcgm_standalone_perf_bounded(handle):
 
 
 def _generate_cpu_line_charts(cpuUtilTS):
-    if not isReqMatplotlibVersion():
+    if not isMatplotlibAvailable():
         logger.info(
-            'Not generating CPU utilization graphs since "matplotlib" is not the required version')
+            'Not generating CPU utilization graphs since "matplotlib" is not installed')
         return
     if logger.log_dir is None:
         logger.info(

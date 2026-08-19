@@ -1,55 +1,54 @@
 #!/usr/bin/env bash
 
+# Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 set -ex
 
 # First install Rust x86_64-unknown-linux-gnu for all targets.
 # This is required to install host tools for cargo.
 
-read -r _ URL SHA512SUM <<<$(grep '^rustc ' $1)
-
-curl --location --fail --output rust.tar.xz --retry 5 $URL
-echo "$SHA512SUM rust.tar.xz" | sha512sum --check -
-
 mkdir rust_install
-tar xf rust.tar.xz -C rust_install --strip-components=1
+tar xf /tmp/downloads/rust.tar.xz -C rust_install --strip-components=1
 
 # This installs into /usr/local/bin
 ./rust_install/install.sh --prefix=$RUST_INSTALL_PREFIX
 
-rm -rf rust_install rust.tar.xz
+rm -rf rust_install
 
 # Now install rust-std for the target if it's different from x86_64-unknown-linux-gnu
 # The target location must match where the rustc above was installed
 
-read -r _ URL SHA512SUM <<<$(grep "^rust-std-$TARGET " $1)
-
-# Check if URL was found for this target
-if [ -n "$URL" ]; then
-    curl --location --fail --output rust-std.tar.xz --retry 5 $URL
-    echo "$SHA512SUM rust-std.tar.xz" | sha512sum --check -
-
+if [ -f "/tmp/downloads/rust-std-$TARGET.tar.xz" ]; then
     mkdir rust-std
-    tar xf rust-std.tar.xz -C rust-std --strip-components=1
+    tar xf "/tmp/downloads/rust-std-$TARGET.tar.xz" -C rust-std --strip-components=1
 
     ./rust-std/install.sh --prefix=$RUST_INSTALL_PREFIX
 
-    rm -rf rust-std rust-std.tar.xz
+    rm -rf rust-std
 else
-    echo "No rust-std URL found for target: $TARGET" >&2 
+    echo "No rust-std artifact found for target: $TARGET" >&2
 fi
 
 # Now install rust-src (solely for the rust-analyzer proper work for now)
-read -r _ URL SHA512SUM <<<$(grep "^rust-src " $1)
-
-curl --location --fail --output rust-src.tar.xz --retry 5 $URL
-echo "$SHA512SUM rust-src.tar.xz" | sha512sum --check -
-
 mkdir rust-src
-tar xf rust-src.tar.xz -C rust-src --strip-components=1
+tar xf /tmp/downloads/rust-src.tar.xz -C rust-src --strip-components=1
 
 ./rust-src/install.sh --prefix=$RUST_INSTALL_PREFIX --components=rust-src
 
-rm -rf rust-src rust-src.tar.xz
+rm -rf rust-src
 
 mkdir -p /.cargo
 cat <<EOF > /.cargo/config.toml

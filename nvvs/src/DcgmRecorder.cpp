@@ -955,7 +955,7 @@ int DcgmRecorder::CheckForClocksEvent(unsigned int gpuId,
     // mask for the failures we're evaluating
     static const uint64_t failureMask = DCGM_CLOCKS_EVENT_REASON_HW_SLOWDOWN | DCGM_CLOCKS_EVENT_REASON_SW_THERMAL
                                         | DCGM_CLOCKS_EVENT_REASON_HW_THERMAL | DCGM_CLOCKS_EVENT_REASON_HW_POWER_BRAKE;
-    uint64_t mask = failureMask;
+    uint64_t mask                     = failureMask;
 
     // Update mask to ignore clocks event reasons given by the ignoreMask
     if (nvvsCommon.clocksEventIgnoreMask != DCGM_INT64_BLANK && nvvsCommon.clocksEventIgnoreMask > 0)

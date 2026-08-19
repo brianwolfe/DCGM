@@ -569,7 +569,7 @@ uint64_t NvsdmMockPort::GetGuid() const
     int const guidPortNumLshift = 32;
     int const guidPortLidLshift = 16;
     uint64_t guid               = (static_cast<uint64_t>(m_portNum) << guidPortNumLshift)
-                    | (static_cast<uint64_t>(m_lid) << guidPortLidLshift) | m_portNum;
+                                  | (static_cast<uint64_t>(m_lid) << guidPortLidLshift) | m_portNum;
     return guid;
 }
 nvsdmPortInfo_t NvsdmMockPort::GetInfo() const

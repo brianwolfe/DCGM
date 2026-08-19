@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^lcov ' $1)
-
-curl --location --fail --output lcov.tar.gz --retry 5 $URL
-echo "$SHA512SUM lcov.tar.gz" | sha512sum --check -
-
 mkdir lcov
-tar xf lcov.tar.gz -C lcov --strip-components=1
+tar xf /tmp/downloads/lcov.tar.gz -C lcov --strip-components=1
 
 make -C lcov install
-rm -rf lcov lcov.tar.gz
+rm -rf lcov

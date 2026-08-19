@@ -3627,8 +3627,8 @@ typedef dcgmRunMnDiag_v1 dcgmRunMnDiag_t;
 #define DCGM_MN_DIAG_RESPONSE_HOSTS_MAX             72 //!< The maximum number of hosts that can be reported.
 #define DCGM_MN_DIAG_RESPONSE_ENTITIES_MAX \
     (DCGM_MN_DIAG_RESPONSE_HOSTS_MAX * DCGM_MN_DIAG_RESPONSE_ENTITIES_PER_HOST_MAX)
-#define DCGM_MN_DIAG_TEST_RUN_ERROR_INDICES_MAX 32  //!< The maximum number of per-entity errors that can be reported.
-#define DCGM_MN_DIAG_TEST_RUN_INFO_INDICES_MAX  128 //!< The maximum number of per-entity info msgs that can be reported.
+#define DCGM_MN_DIAG_TEST_RUN_ERROR_INDICES_MAX 32 //!< The maximum number of per-entity errors that can be reported.
+#define DCGM_MN_DIAG_TEST_RUN_INFO_INDICES_MAX 128 //!< The maximum number of per-entity info msgs that can be reported.
 
 #define DCGM_MN_DIAG_RESPONSE_ERRORS_MAX DCGM_MN_DIAG_TEST_RUN_ERROR_INDICES_MAX
 #define DCGM_MN_DIAG_RESPONSE_INFO_MAX   DCGM_MN_DIAG_TEST_RUN_INFO_INDICES_MAX

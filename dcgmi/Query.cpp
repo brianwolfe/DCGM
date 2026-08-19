@@ -1339,8 +1339,8 @@ std::string FormatMigHierarchy(dcgmMigHierarchy_v2 &hierarchy)
                 }
 
                 // Display the Instance
-                instanceId = "I " + std::to_string(entity.info.nvmlGpuIndex) + "/"
-                             + std::to_string(entity.info.nvmlInstanceId);
+                instanceId             = "I " + std::to_string(entity.info.nvmlGpuIndex) + "/"
+                                         + std::to_string(entity.info.nvmlInstanceId);
                 out[gpuId][instanceId] = "GPU Instance (EntityID: " + std::to_string(entityId) + ")";
                 break;
             }

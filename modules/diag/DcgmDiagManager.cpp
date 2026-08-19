@@ -1587,9 +1587,15 @@ dcgmReturn_t DcgmDiagManager::RunDiag(dcgmRunDiag_v10 *drd,
 
     if (expectedNumGpus > 0 && expectedNumGpus != gpuIds.size())
     {
-        log_error("expectedNumGpus [{}] does not match the number of GPUs [{}] listed/discovered in the system.",
-                  expectedNumGpus,
-                  gpuIds.size());
+        auto const expectedGpuNoun = expectedNumGpus == 1 ? "GPU" : "GPUs";
+        auto const foundGpuNoun    = gpuIds.size() == 1 ? "GPU" : "GPUs";
+        auto const msg             = fmt::format("Expected {} {}, but found {} {} selected for the diagnostic.",
+                                                 expectedNumGpus,
+                                                 expectedGpuNoun,
+                                                 gpuIds.size(),
+                                                 foundGpuNoun);
+        log_error("{}", msg);
+        response.RecordSystemError(msg);
         return DCGM_ST_BADPARAM;
     }
 

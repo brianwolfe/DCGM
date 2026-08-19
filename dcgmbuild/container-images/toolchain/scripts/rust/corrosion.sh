@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 
+# Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^corrosion ' $1)
-
-curl --location --fail --output corrosion.tar.gz --retry 5 $URL
-echo "$SHA512SUM corrosion.tar.gz" | sha512sum --check -
-
 mkdir corrosion
-tar xzf corrosion.tar.gz -C corrosion --strip-components=1
+tar xzf /tmp/downloads/corrosion.tar.gz -C corrosion --strip-components=1
 
 unset CMAKE_TOOLCHAIN_FILE
 export PATH=$RUST_INSTALL_PREFIX/bin:$PATH
@@ -20,4 +30,4 @@ cmake -Scorrosion -Bcorrosion/build \
 cmake --build corrosion/build
 cmake --install corrosion/build
 
-rm -rf corrosion corrosion.tar.gz
+rm -rf corrosion

@@ -16,13 +16,8 @@
 
 set -ex
 
-read -r _ URL SHA512SUM <<<$(grep '^libnuma ' $1)
-
-curl --location --fail --output libnuma.tar.gz --retry 5 $URL
-echo "$SHA512SUM libnuma.tar.gz" | sha512sum --check -
-
 mkdir --parents libnuma/src
-tar xf libnuma.tar.gz -C libnuma/src --strip-components=1
+tar xf /tmp/downloads/libnuma.tar.gz -C libnuma/src --strip-components=1
 
 mkdir --parents $CMAKE_STAGING_PREFIX/include
 install --mode 644 libnuma/src/numa.h $CMAKE_STAGING_PREFIX/include/
@@ -30,4 +25,4 @@ install --mode 644 libnuma/src/numa.h $CMAKE_STAGING_PREFIX/include/
 mkdir --parents $CMAKE_STAGING_PREFIX/share/licenses/libnuma
 install --mode 644 libnuma/src/LICENSE.LGPL2.1 $CMAKE_STAGING_PREFIX/share/licenses/libnuma/
 
-rm -rf libnuma libnuma.tar.gz
+rm -rf libnuma

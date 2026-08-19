@@ -30,6 +30,47 @@ typedef struct
     SafeNvmlHandle nvmlDevice;
 } dcgm_power_profile_helper_t;
 
+/**
+ * Interface for reading workload power profile data from an NVML-facing collaborator.
+ *
+ * Implementations read NVML workload power profile metadata and current status for
+ * a safe NVML device handle. Production callers use the NvmlTaskRunner-backed
+ * implementation; unit tests may provide fakes that return deterministic NVML
+ * status codes and profile structures.
+ */
+class DcgmWorkloadPowerProfileReader
+{
+public:
+    /**
+     * Destroy the workload power profile reader.
+     */
+    virtual ~DcgmWorkloadPowerProfileReader() noexcept = default;
+
+    /**
+     * Read supported workload power profile metadata for a device.
+     *
+     * @param[in] device Safe NVML device handle to query.
+     * @param[out] profilesInfo NVML profile metadata populated by the implementation.
+     *
+     * @return NVML_SUCCESS on success; otherwise an NVML error code describing the failure.
+     */
+    virtual nvmlReturn_t GetWorkloadPowerProfileProfilesInfo(
+        SafeNvmlHandle device,
+        nvmlWorkloadPowerProfileProfilesInfo_t *profilesInfo) noexcept = 0;
+
+    /**
+     * Read current workload power profile masks for a device.
+     *
+     * @param[in] device Safe NVML device handle to query.
+     * @param[out] currentProfiles NVML current profile masks populated by the implementation.
+     *
+     * @return NVML_SUCCESS on success; otherwise an NVML error code describing the failure.
+     */
+    virtual nvmlReturn_t GetWorkloadPowerProfileCurrentProfiles(
+        SafeNvmlHandle device,
+        nvmlWorkloadPowerProfileCurrentProfiles_t *currentProfiles) noexcept = 0;
+};
+
 /*************************************************************************/
 /*
  * Get information about the profiles supported on this device
